@@ -94,10 +94,18 @@
           {{ TestMessage.topic2 }}
         </tr>
         <tr>
-          {{ TestMessage.message }}
+          {{ TestMessage.message[0] }}
+        </tr>
+        <tr>
+          {{ TestMessage.message[1] }}
+        </tr>
+        <tr>
+          {{ TestMessage.message[2] }}
         </tr>
       </div>
-
+      <el-button type="success" size="small" class="conn-btn" style="margin-right: 20px;" @click="DrawCanvas">
+        CanvasTest
+      </el-button>
     </el-card>
     <!-- 顯示ESP座標 -->
     <el-card shadow="always" style="margin-bottom:30px;">
@@ -154,7 +162,11 @@ export default {
       TestMessage: {
         topic: 'Topic: indoor/#',
         topic2: 'Topic: indoor/test1',
-        message: '{"station":"esp2","info":[{"mac":"test1","rssi":10},{"mac":"test2","rssi":30},{"mac":"test3","rssi":30}]}'
+        message: [
+          '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}',
+          '{"station":"esp2","info":[{"mac":"test1","rssi":10},{"mac":"test2","rssi":30},{"mac":"test3","rssi":30}]}',
+          '{"station":"esp3","info":[{"mac":"test1","rssi":69},{"mac":"test2","rssi":38},{"mac":"test3","rssi":50}]}'
+        ]
       }
       ,
       StationsPosition: {
@@ -203,20 +215,45 @@ export default {
     this.createConnection()
   },
   methods: {
-    total() {
+    total(message) {
+      this.MessageProcess(message)
+
       let macs = this.macs
       let beacons = this.beacons
-
 
       for (let index = 0; index < macs.length; index++) {
         if (Object.keys(beacons[macs[index]]).length >= 3) {
           let [x, y] = this.CalculatePosition(beacons[macs[index]])
           this.PositionMessage[macs[index]] = { "x": x, "y": y }
-
-          this.DrawCanvas(this.PositionMessage)
         }
       }
     },
+    MessageProcess(message) {
+      let msg = JSON.parse(message)
+
+      // !== 相同型別才做比較
+      //參考https://github.com/simonbogh/ESP32-iBeacon-indoor-positioning
+      if (msg !== null) {
+        for (let i = 0; i < msg.info.length; i++) {
+          let station = msg.station
+          let mac = msg.info[i].mac
+
+          if (!this.Stations.includes(station)) {
+            this.Stations.push(station)
+          }
+          if (typeof (this.beacons[mac]) !== 'object') {
+            // Initialize
+            this.beacons[mac] = []
+            this.macs.push(mac)
+          }
+          // Insert new record
+          this.beacons[mac][station] = {
+            rssi: parseInt(msg.info[i].rssi, 10)
+          }
+        }
+      }
+    },
+    //CalculatePosition return [x, y]
     CalculatePosition(beacon) {
       function CalculateDistance(rssi) {
         // Distance = 10^((abs(RSSI) - Distance_Meter) / (10 * n))
@@ -243,7 +280,7 @@ export default {
       return [output[0], output[1]]
 
     },
-    DrawCanvas(PositionMessage) {
+    DrawCanvas() {
 
       let canvas = document.getElementById("mycanvas");//New canvas
       let context = canvas.getContext("2d"); //創立畫布
@@ -252,8 +289,7 @@ export default {
       canvas.setAttribute("height", 600)
 
       this.DrawTablePhoto(context)
-
-      this.DrawTarget(context, PositionMessage)
+      this.DrawTarget(context, this.PositionMessage)
     },
     DrawTablePhoto(context) {
       let x = 1100
@@ -292,12 +328,11 @@ export default {
       let macs = this.macs
 
       for (let index = 0; index < macs.length; index++) {
-        // context.beginPath();
-        // context.arc(PositionMessage[macs[index]].x, PositionMessage[macs[index]].y, 10, 0, 2 * Math.PI);
-        // context.stroke();
+        context.beginPath();
+        context.arc(PositionMessage[macs[index]].x, PositionMessage[macs[index]].y, 10, 0, 2 * Math.PI);
+        context.stroke();
+        console.log(index + ":" + [PositionMessage[macs[index]].x, PositionMessage[macs[index]].y])
       }
-
-
     },
     DrawPhoto() {
       //console.log(this.message);
@@ -324,33 +359,8 @@ export default {
       };
 
     },
-    MessageProcess(message) {
-      let msg = JSON.parse(message)
 
-      // !== 相同型別才做比較
-      //參考https://github.com/simonbogh/ESP32-iBeacon-indoor-positioning
-      if (msg !== null) {
-        for (let i = 0; i < msg.info.length; i++) {
-          let station = msg.station
-          let mac = msg.info[i].mac
-
-          if (!this.Stations.includes(station)) {
-            this.Stations.push(station)
-          }
-          if (typeof (this.beacons[mac]) !== 'object') {
-            // Initialize
-            this.beacons[mac] = []
-            this.macs.push(mac)
-          }
-          // Insert new record
-          this.beacons[mac][station] = {
-            rssi: parseInt(msg.info[i].rssi, 10)
-          }
-        }
-      }
-
-      this.total()
-    },
+    //MQTT Connection,subscribe...
     createConnection() {
       // ws 未加密 WebSocket 連接
       // wss 加密 WebSocket 連接
@@ -372,8 +382,9 @@ export default {
       this.client.on('error', error => {
         console.log('Connection failed', error)
       })
+      //進入點
       this.client.on('message', (topic, message) => {
-        this.MessageProcess(message)
+        this.total(message)
       })
     },
     doSubscribe() {
