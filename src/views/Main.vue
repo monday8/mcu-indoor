@@ -52,7 +52,7 @@
       </el-form>
     </el-card>
     <!-- 訂閱設定 -->
-    <el-card shadow="always" style="mastationrgin-bottom:30px;">
+    <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         Subscribe
       </div>
@@ -60,26 +60,23 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item prop="topic" label="Topic">
-              <el-input v-model="subscription.topic"></el-input>
+              <el-input :disabled="client.connected" v-model="subscription.topic"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item prop="qos" label="QoS">
-              <el-select v-model="subscription.qos">
+              <el-select :disabled="client.connected" v-model="subscription.qos">
                 <el-option v-for="(item, index) in qosList" :key="index" :label="item.label" :value="item.value">
                 </el-option>
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-button :disabled="!client.connected" type="success" size="small" class="subscribe-btn"
+            <el-button :disabled="client.connected" type="success" size="small" class="subscribe-btn"
               @click="doSubscribe">
-              {{ subscribeSuccess ? 'Subscribed' : 'Subscribe' }}
+              {{ 'Subscribe' }}
             </el-button>
-            <el-button :disabled="!client.connected" type="success" size="small" class="subscribe-btn"
-              style="margin-left:20px" @click="doUnSubscribe" v-if="subscribeSuccess">
-              Unsubscribe
-            </el-button>
+
           </el-col>
         </el-row>
       </el-form>
@@ -112,13 +109,13 @@
       <div class="emq-title">
         Station Position
         <tr>
-          esp0: {{ StationsPosition.esp0 }}
+          esp0: {{ StationsInfo.esp1 }}
         </tr>
         <tr>
-          esp1: {{ StationsPosition.esp1 }}
+          esp1: {{ StationsInfo.esp2 }}
         </tr>
         <tr>
-          esp2: {{ StationsPosition.esp2 }}
+          esp2: {{ StationsInfo.esp3 }}
         </tr>
       </div>
 
@@ -169,14 +166,13 @@ export default {
         ]
       }
       ,
-      StationsPosition: {
-        esp1: { x: 10, y: 12 },
-        esp2: { x: 20, y: 15 },
-        esp3: { x: 30, y: 15 },
+      StationsInfo: {
+        esp1: { x: 10, y: 12, DistanceMeter: 30, EnvironFator: 2.2 },
+        esp2: { x: 20, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
+        esp3: { x: 30, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
       },
       Stations: []
       ,
-      //網頁顯示資料
       beacons: {}
       ,
       macs: []
@@ -207,7 +203,6 @@ export default {
       client: {
         connected: false,
       },
-      subscribeSuccess: false,
     }
   },
   mounted() {
@@ -255,23 +250,23 @@ export default {
     },
     //CalculatePosition return [x, y]
     CalculatePosition(beacon) {
-      function CalculateDistance(rssi) {
-        // Distance = 10^((abs(RSSI) - Distance_Meter) / (10 * n))
+      function CalculateDistance(rssi,stations) {
+        // Distance = 10^((abs(RSSI) - DistanceMeter) / (10 * EnvironFator))
         // RSSI - 接收訊號強度(負值)
-        // Distance_Meter - 發收跟接收相距1米的訊號強度
-        // n - 環境衰減因子
-        let Distance_Meter = 50
-        let n = 3.3
-        let Distance = Math.pow(10, (Math.abs(rssi) - Distance_Meter) / (10 * n))
+        // DistanceMeter - 發收跟接收相距1米的訊號強度
+        // EnvironFator - 環境衰減因子
+        let DistanceMeter = stations.esp1.DistanceMeter
+        let EnvironFator = stations.esp1.EnvironFator
+        let Distance = Math.pow(10, (Math.abs(rssi) - DistanceMeter) / (10 * EnvironFator))
 
         return Distance;
       }
 
-      let stations = this.StationsPosition
+      let stations = this.StationsInfo
       let input = [
-        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi)],
-        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi)],
-        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi)]
+        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi,stations)],
+        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi,stations)],
+        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi,stations)]
       ]
       let output = trilat(input)
 
@@ -394,16 +389,7 @@ export default {
           console.log('Subscribe to topics error', error)
           return
         }
-        this.subscribeSuccess = true
         console.log('Subscribe to topics res', res)
-      })
-    },
-    doUnSubscribe() {
-      const { topic } = this.subscription
-      this.client.unsubscribe(topic, error => {
-        if (error) {
-          console.log('Unsubscribe error', error)
-        }
       })
     },
     destroyConnection() {
