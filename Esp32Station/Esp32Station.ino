@@ -14,6 +14,8 @@ const char pwd[] = "00000001";
 //
 const String uuid = "b2270008-0080-b211-d21d-7eb9ad2e1502";
 
+const int ScanTime = 2000;
+
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
 {
     void onResult(BLEAdvertisedDevice advertisedDevice)
@@ -71,8 +73,11 @@ void ScanBeacon()
     Serial.println("Scanning...");
     BLEScanResults foundDevices = pBLEScan->start(scanTime);
     pBLEScan->clearResults(); // delete results fromBLEScan buffer to release memory
-    Serial.println("Wait a five second.");
-    delay(5000);
+    
+    Serial.print("Wait a ");
+    Serial.print(ScanTime/1000);
+    Serial.println(" second.");
+    delay(ScanTime);
 }
 
 void setup()
