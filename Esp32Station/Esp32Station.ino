@@ -7,11 +7,11 @@
 
 BLEScan *pBLEScan;
 
-int scanTime = 2000; // In seconds
+int BeaconScanTime = 2000; // In seconds
 const char ssid[] = "yoyoyoyo";
 const char pwd[] = "00000001";
 
-//
+//original UUID 2eadb97e-1dd2-11b2-8000-080027b246c5
 const String uuid = "b2270008-0080-b211-d21d-7eb9ad2e1502";
 
 const int ScanTime = 2000;
@@ -39,15 +39,6 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
 
         }
 
-        // Serial.print("MacUUID:");
-        // Serial.println(MacUUID);
-        // Serial.print("Address:");
-        // Serial.println(MacAddress);
-
-        // String MacUUID = advertisedDevice.getServiceUUID().toString().c_str();
-        // //取得附近設備UUID
-        // int MabRSSI = advertisedDevice.getRSSI();
-        // String MacAddress = advertisedDevice.getAddress().toString().c_str();
     }
 };
 
@@ -71,9 +62,9 @@ void ScanBeacon()
     pBLEScan->setActiveScan(true);
 
     Serial.println("Scanning...");
-    BLEScanResults foundDevices = pBLEScan->start(scanTime);
+    BLEScanResults foundDevices = pBLEScan->start(BeaconScanTime);
     pBLEScan->clearResults(); // delete results fromBLEScan buffer to release memory
-    
+
     Serial.print("Wait a ");
     Serial.print(ScanTime/1000);
     Serial.println(" second.");
