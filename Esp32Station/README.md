@@ -34,4 +34,8 @@ uint8_t *payload = advertisedDevice.getPayload();
 id.setData(payload);
 
 String m_uuid = id.getProximityUUID().to128().toString().c_str();
+
 ```
+
+## esp32 MQTT Setting
+### serve ip from computer "cmd->ipconfig ipv4 address"

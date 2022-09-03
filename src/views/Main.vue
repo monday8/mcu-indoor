@@ -185,14 +185,14 @@ export default {
       connection: {
         host: '127.0.0.1',
         port: 1884,
-        endpoint: '/mqtt',
+        endpoint: '',
         clean: true, // 保留會話
         connectTimeout: 4000, // Timeout
         reconnectPeriod: 4000, // 重新連接間隔
         clientId: 'mqtt_test' + Math.floor(Math.random() * 100),
       },
       subscription: {
-        topic: 'indoor/test1',
+        topic: 'indoor/',
         qos: 0,
       },
       qosList: [
@@ -250,7 +250,7 @@ export default {
     },
     //CalculatePosition return [x, y]
     CalculatePosition(beacon) {
-      function CalculateDistance(rssi,stations) {
+      function CalculateDistance(rssi, stations) {
         // Distance = 10^((abs(RSSI) - DistanceMeter) / (10 * EnvironFator))
         // RSSI - 接收訊號強度(負值)
         // DistanceMeter - 發收跟接收相距1米的訊號強度
@@ -264,9 +264,9 @@ export default {
 
       let stations = this.StationsInfo
       let input = [
-        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi,stations)],
-        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi,stations)],
-        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi,stations)]
+        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi, stations)],
+        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi, stations)],
+        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi, stations)]
       ]
       let output = trilat(input)
 
