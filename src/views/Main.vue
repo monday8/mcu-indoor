@@ -18,8 +18,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item prop="endpoint" label="Mountpoint">
-              <el-input v-model="connection.endpoint" placeholder="/mqtt"></el-input>
+            <el-form-item prop="endpoint" label="Mountpoint(暫時不可用)">
+              <el-input v-model="connection.endpoint" disabled></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -158,7 +158,7 @@ export default {
     return {
       TestMessage: {
         topic: 'Topic: indoor/#',
-        topic2: 'Topic: indoor/test1',
+        topic2: 'Topic: indoor/',
         message: [
           '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}',
           '{"station":"esp2","info":[{"mac":"test1","rssi":10},{"mac":"test2","rssi":30},{"mac":"test3","rssi":30}]}',
@@ -189,10 +189,10 @@ export default {
         clean: true, // 保留會話
         connectTimeout: 4000, // Timeout
         reconnectPeriod: 4000, // 重新連接間隔
-        clientId: 'mqtt_test' + Math.floor(Math.random() * 100),
+        clientId: 'MqttWeb_indoor',
       },
       subscription: {
-        topic: 'indoor/',
+        topic: 'indoor/#',
         qos: 0,
       },
       qosList: [
@@ -213,15 +213,18 @@ export default {
     total(message) {
       this.MessageProcess(message)
 
-      let macs = this.macs
-      let beacons = this.beacons
+      this.user_receive = this.beacons[this.macs]["esp1"]
+      //["54:0e:72:66:99:59"]["esp1"]
 
-      for (let index = 0; index < macs.length; index++) {
-        if (Object.keys(beacons[macs[index]]).length >= 3) {
-          let [x, y] = this.CalculatePosition(beacons[macs[index]])
-          this.PositionMessage[macs[index]] = { "x": x, "y": y }
-        }
-      }
+      // let macs = this.macs
+      // let beacons = this.beacons
+
+      // for (let index = 0; index < macs.length; index++) {
+      //   if (Object.keys(beacons[macs[index]]).length >= 3) {
+      //     let [x, y] = this.CalculatePosition(beacons[macs[index]])
+      //     this.PositionMessage[macs[index]] = { "x": x, "y": y }
+      //   }
+      // }
     },
     MessageProcess(message) {
       let msg = JSON.parse(message)
@@ -241,10 +244,24 @@ export default {
             this.beacons[mac] = []
             this.macs.push(mac)
           }
-          // Insert new record
-          this.beacons[mac][station] = {
-            rssi: parseInt(msg.info[i].rssi, 10)
+          if (this.beacons[mac][station] == null) {
+
+            // Insert new record
+            this.beacons[mac][station] = {
+              rssi: parseInt(msg.info[i].rssi, 10)
+            }
           }
+          // -50 > -10 + -20 && -50 < -80 +20
+          else if (this.beacons[mac][station].rssi+15 >= msg.info[i].rssi && this.beacons[mac][station].rssi-15 <= msg.info[i].rssi) {
+            // Insert new record
+            this.beacons[mac][station] = {
+              rssi: parseInt((msg.info[i].rssi + this.beacons[mac][station].rssi) / 2, 10)
+            }
+          }
+
+
+
+
         }
       }
     },
