@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     <!-- 連線設定 -->
-    <el-card shadow="always" style="margin-bottom:30px;">
+    <!-- <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         MQTT連線設定
       </div>
@@ -50,9 +50,9 @@
           </el-col>
         </el-row>
       </el-form>
-    </el-card>
+    </el-card> -->
     <!-- 訂閱設定 -->
-    <el-card shadow="always" style="margin-bottom:30px;">
+    <!-- <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         Subscribe
       </div>
@@ -77,6 +77,21 @@
               {{ 'Subscribe' }}
             </el-button>
 
+          </el-col>
+        </el-row>
+      </el-form>
+    </el-card> -->
+
+    <el-card shadow="always" style="margin-bottom:30px;">
+      <el-form ref="subscription" hide-required-asterisk size="small" label-position="top" :model="subscription">
+        <el-row :gutter="20">
+          <el-col :span="8">
+            <el-form-item prop="SelectMac" label="選擇鎖定mac">
+              <el-select v-model="TestMessage.SelectMac">
+                <el-option v-for="(item, index) in macs" :key="index" :label="macs[index]" :value="macs[index]">
+                </el-option>
+              </el-select>
+            </el-form-item>
           </el-col>
         </el-row>
       </el-form>
@@ -126,7 +141,7 @@
         (測試) 計算位置:
       </div>
       <tr>
-        <span> {{ user_receive }}</span>
+        <span> {{ TestMessage.SelectMac }}</span>
       </tr>
     </el-card>
     <!-- 室內定位圖 -->
@@ -160,10 +175,9 @@ export default {
         topic: 'Topic: indoor/#',
         topic2: 'Topic: indoor/',
         message: [
-          '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}',
-          '{"station":"esp2","info":[{"mac":"test1","rssi":10},{"mac":"test2","rssi":30},{"mac":"test3","rssi":30}]}',
-          '{"station":"esp3","info":[{"mac":"test1","rssi":69},{"mac":"test2","rssi":38},{"mac":"test3","rssi":50}]}'
-        ]
+          '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}'
+        ],
+        SelectMac: ""
       }
       ,
       StationsInfo: {
@@ -171,10 +185,13 @@ export default {
         esp2: { x: 20, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
         esp3: { x: 30, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
       },
+      //偵測到的站點
       Stations: []
       ,
+      //偵測到的beacon資訊
       beacons: {}
       ,
+      //偵測到的mac
       macs: []
       ,
       PositionMessage: []
@@ -231,6 +248,7 @@ export default {
 
       // !== 相同型別才做比較
       //參考https://github.com/simonbogh/ESP32-iBeacon-indoor-positioning
+
       if (msg !== null) {
         for (let i = 0; i < msg.info.length; i++) {
           let station = msg.station
@@ -252,7 +270,7 @@ export default {
             }
           }
           // -50 > -10 + -20 && -50 < -80 +20
-          else if (this.beacons[mac][station].rssi+15 >= msg.info[i].rssi && this.beacons[mac][station].rssi-15 <= msg.info[i].rssi) {
+          else if (this.beacons[mac][station].rssi + 15 >= msg.info[i].rssi && this.beacons[mac][station].rssi - 15 <= msg.info[i].rssi) {
             // Insert new record
             this.beacons[mac][station] = {
               rssi: parseInt((msg.info[i].rssi + this.beacons[mac][station].rssi) / 2, 10)
