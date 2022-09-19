@@ -1,5 +1,5 @@
 {
-  "name": "my-vue-mqtt-eg",
+  "name": "indoor-position",
   "version": "0.1.0",
   "private": true,
   "scripts": {
