@@ -194,10 +194,6 @@ export default {
               rssi: parseInt((msg.info[i].rssi + this.beacons[mac][station].rssi) / 2, 10)
             }
           }
-
-
-
-
         }
       }
     },
