@@ -1,12 +1,14 @@
 <template>
   <div class="home-container">
+    <!-- 顯示mac -->
     <el-card shadow="always" style="margin-bottom:30px;">
       <el-form ref="subscription" hide-required-asterisk size="small" label-position="top" :model="subscription">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item prop="SelectMac" label="選擇鎖定mac">
-              <el-select v-model="TestMessage.SelectMac">
-                <el-option v-for="(item, index) in macs" :key="index" :label="macs[index]" :value="macs[index]">
+            <el-form-item prop="Selectmac" label="選擇鎖定mac">
+              <el-select v-model="selectmac">
+                <el-option v-for="(item, index) in Message.UserMessage.macs" :key="index"
+                  :label="Message.UserMessage.macs[index]" :value="Message.UserMessage.macs[index]">
                 </el-option>
               </el-select>
             </el-form-item>
@@ -18,27 +20,16 @@
     <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         <tr>
-          {{ TestMessage.topic }}
+          {{ example.topic }}
         </tr>
         <tr>
-          {{ TestMessage.topic2 }}
-        </tr>
-        <tr>
-          {{ TestMessage.message[0] }}
-        </tr>
-        <tr>
-          {{ TestMessage.message[1] }}
-        </tr>
-        <tr>
-          {{ TestMessage.message[2] }}
+          TEST: {{ example.message }}
         </tr>
       </div>
-      <el-button type="success" size="small" class="conn-btn" style="margin-right: 20px;" @click="DrawCanvas">
-        CanvasTest
-      </el-button>
     </el-card>
+
     <!-- 顯示ESP座標 -->
-    <el-card shadow="always" style="margin-bottom:30px;">
+    <!-- <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         Station Position
         <tr>
@@ -51,22 +42,26 @@
           esp2: {{ StationsInfo.esp3 }}
         </tr>
       </div>
+    </el-card> -->
 
-    </el-card>
     <!-- 測試回覆 -->
     <el-card style="margin-bottom:30px;">
       <div class="emq-title">
-        (測試) 計算位置:
+        (測試)
       </div>
       <tr>
-        <span> {{ TestMessage.SelectMac }}</span>
+        <span> {{ Message.UserMessage.macs }}</span>
       </tr>
     </el-card>
+
     <!-- 室內定位圖 -->
     <el-card style="margin-bottom:20px;">
       <div class="emq-title">
         室內定位圖
       </div>
+      <el-button type="success" size="small" class="conn-btn" style="margin-right: 20px;" @click="DrawCanvas">
+        CanvasTest
+      </el-button>
     </el-card>
     <!-- IndoorPosition IMG -->
     <div style="width:400px">
@@ -89,34 +84,29 @@ export default {
   name: 'Home',
   data() {
     return {
-      TestMessage: {
+      example: {
         topic: 'Topic: indoor/#',
-        topic2: 'Topic: indoor/',
-        message: [
-          '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}'
-        ],
-        SelectMac: ""
-      }
-      ,
-      StationsInfo: {
-        esp1: { x: 10, y: 12, DistanceMeter: 30, EnvironFator: 2.2 },
-        esp2: { x: 20, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
-        esp3: { x: 30, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
+        message: '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}',
       },
-      //偵測到的站點
-      Stations: []
-      ,
-      //偵測到的beacon資訊
-      beacons: {}
-      ,
-      //偵測到的mac
-      macs: []
-      ,
-      PositionMessage: []
-      ,
-      //測試接收資訊
-      user_receive: ""
-      ,
+      Message: {
+        StationsInfo: {
+          //設定esp初始數值
+          esp1: { x: 10, y: 12, DistanceMeter: 30, EnvironFator: 2.2 },
+          esp2: { x: 20, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
+          esp3: { x: 30, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
+        },
+        UserMessage: {
+          //偵測到的beacon資訊(已處理過) //ex. beacons[mac][station]
+          beacons: {},
+          //偵測到的mac
+          macs: [],
+          //計算完位置訊息
+          PositionMessage: [],
+        },
+      },
+      selectmac:"",
+      //測試資訊
+      user_receive: "",
       connection: {
         host: '127.0.0.1',
         port: 1884,
@@ -141,58 +131,67 @@ export default {
     }
   },
   mounted() {
-    //測試
+    //創建MQTT連接
     this.createConnection()
   },
   methods: {
     total(message) {
-      this.MessageProcess(message)
+      //處理JSON，RSSI取平均值，波動大不取。
+      this.JsonProcess(message)
 
-      this.user_receive = this.beacons[this.macs]["esp1"]
       //["54:0e:72:66:99:59"]["esp1"]
 
-      // let macs = this.macs
-      // let beacons = this.beacons
+
+      // let macs = this.UserMessage.macs
+      // let beacons = this.UserMessage.beacons
 
       // for (let index = 0; index < macs.length; index++) {
-      //   if (Object.keys(beacons[macs[index]]).length >= 3) {
+      //   if (Object.keys(beacons[macs[index]]).length >= 3) {      //最少偵測到三台才計算
+      //     //取出三台最近的esp和相對RSSI值(暫時只做三台)
+      //     //let beacon = this.MinRssi_3Device(beacons[macs[index]])
+
       //     let [x, y] = this.CalculatePosition(beacons[macs[index]])
-      //     this.PositionMessage[macs[index]] = { "x": x, "y": y }
+      //     //紀錄位置訊息，下次取平均
+      //     this.UserMessage.PositionMessage[macs[index]] = { "x": x, "y": y }
       //   }
       // }
+
     },
-    MessageProcess(message) {
+    JsonProcess(message) {
+
       let msg = JSON.parse(message)
 
       // !== 相同型別才做比較
       //參考https://github.com/simonbogh/ESP32-iBeacon-indoor-positioning
 
+      //RSSI取平均且波動太大不取
+
       if (msg !== null) {
         for (let i = 0; i < msg.info.length; i++) {
+          //接收資料
           let station = msg.station
           let mac = msg.info[i].mac
+          let ReceiveRssi = msg.info[i].rssi
+          //網站資料
+          let beacons = this.Message.UserMessage.beacons
+          let macs = this.Message.UserMessage.macs
 
-          if (!this.Stations.includes(station)) {
-            this.Stations.push(station)
-          }
-          if (typeof (this.beacons[mac]) !== 'object') {
+
+          if (typeof (beacons[mac]) !== 'object') {
             // Initialize
-            this.beacons[mac] = []
-            this.macs.push(mac)
+            beacons[mac] = []
+            macs.push(mac)
           }
-          if (this.beacons[mac][station] == null) {
+          if (beacons[mac][station] == null) {
 
             // Insert new record
-            this.beacons[mac][station] = {
-              rssi: parseInt(msg.info[i].rssi, 10)
-            }
+            beacons[mac][station] = parseInt(ReceiveRssi, 10)
+
           }
           // -50 > -10 + -20 && -50 < -80 +20
-          else if (this.beacons[mac][station].rssi + 15 >= msg.info[i].rssi && this.beacons[mac][station].rssi - 15 <= msg.info[i].rssi) {
+          else if (beacons[mac][station] + 15 >= ReceiveRssi && beacons[mac][station] - 15 <= ReceiveRssi) {
             // Insert new record
-            this.beacons[mac][station] = {
-              rssi: parseInt((msg.info[i].rssi + this.beacons[mac][station].rssi) / 2, 10)
-            }
+            beacons[mac][station] = parseInt((ReceiveRssi + beacons[mac][station]) / 2, 10)
           }
         }
       }
@@ -204,23 +203,21 @@ export default {
         // RSSI - 接收訊號強度(負值)
         // DistanceMeter - 發收跟接收相距1米的訊號強度
         // EnvironFator - 環境衰減因子
-        let DistanceMeter = stations.esp1.DistanceMeter
-        let EnvironFator = stations.esp1.EnvironFator
+        let DistanceMeter = stations.DistanceMeter
+        let EnvironFator = stations.EnvironFator
         let Distance = Math.pow(10, (Math.abs(rssi) - DistanceMeter) / (10 * EnvironFator))
 
         return Distance;
       }
 
-      let stations = this.StationsInfo
+      let stations = this.Message.StationsInfo
       let input = [
-        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi, stations)],
-        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi, stations)],
-        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi, stations)]
+        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi, stations.esp1)],
+        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi, stations.esp2)],
+        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi, stations.esp3)]
       ]
       let output = trilat(input)
 
-      this.user_receive = output
-      //20 是DrawTablePhoto()中的BlockSize
       return [output[0], output[1]]
 
     },
@@ -233,7 +230,7 @@ export default {
       canvas.setAttribute("height", 600)
 
       this.DrawTablePhoto(context)
-      this.DrawTarget(context, this.PositionMessage)
+      this.DrawTarget(context, this.UserMessage.PositionMessage)
     },
     DrawTablePhoto(context) {
       let x = 1100
@@ -269,7 +266,7 @@ export default {
       // context.drawImage(TargetImg, 520, 520, TargetImg.width, TargetImg.height)
       // TargetImg.onload = () => {
       // }
-      let macs = this.macs
+      let macs = this.UserMessage.macs
 
       for (let index = 0; index < macs.length; index++) {
         context.beginPath();
