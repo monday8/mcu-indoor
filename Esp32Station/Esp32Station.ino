@@ -12,6 +12,10 @@
 
 #include "user.h"
 
+//#include "esp1.h"
+//#include "esp2.h"
+#include "esp3.h"
+
 /*
 ########################################
 Frist Edit BLEBeacon.cpp and BLEBeacon.h
@@ -26,7 +30,7 @@ BLEScan *pBLEScan;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char topic[] = "indoor/esp1";
+
 
 String msgStr = "";
 char JSON[MQTT_MAX_PACKET_SIZE];
@@ -94,7 +98,7 @@ void connectMQTT()
 {
     client.setServer(mqttServer, mqttPort);
     Serial.println("Connecting to MQTT...");
-    if (client.connect("ESP32Clientmqtt"))
+    if (client.connect(EspName))
     {
         Serial.println("connected");
     }
@@ -156,7 +160,8 @@ void Task_scanbeacon(void *pvParameters)
             connectMQTT();
         }
         //發布MQTT主題與訊息
-        msgStr = msgStr + "{\"station\":\"esp1\",\"info\":["; // i: info
+        msgStr = msgStr + "{\"station\":\"";
+        msgStr = msgStr + device + "\",\"info\":[";
         for (int i = 0; i < DataNum; i++)
         {
             // {"mac":"test1","rssi":10}, //m:mac,r:rssi
@@ -178,7 +183,7 @@ void Task_scanbeacon(void *pvParameters)
 
         // 清空MQTT訊息內容
         msgStr = "";
-        delay(500);
+        delay(1000);
     }
 }
 
