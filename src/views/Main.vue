@@ -5,10 +5,10 @@
       <el-form ref="subscription" hide-required-asterisk size="small" label-position="top" :model="subscription">
         <el-row :gutter="20">
           <el-col :span="8">
-            <el-form-item prop="Selectmac" label="選擇鎖定mac">
+            <el-form-item prop="Selectmac" label="選擇mac">
               <el-select v-model="selectmac">
-                <el-option v-for="(item, index) in Message.UserMessage.macs" :key="index"
-                  :label="Message.UserMessage.macs[index]" :value="Message.UserMessage.macs[index]">
+                <el-option v-for="(item, index) in Message.UserMessage.MajorMinor" :key="index"
+                  :label="Message.UserMessage.MajorMinor[index]" :value="Message.UserMessage.MajorMinor[index]">
                 </el-option>
               </el-select>
             </el-form-item>
@@ -27,30 +27,13 @@
         </tr>
       </div>
     </el-card>
-
-    <!-- 顯示ESP座標 -->
-    <!-- <el-card shadow="always" style="margin-bottom:30px;">
-      <div class="emq-title">
-        Station Position
-        <tr>
-          esp0: {{ StationsInfo.esp1 }}
-        </tr>
-        <tr>
-          esp1: {{ StationsInfo.esp2 }}
-        </tr>
-        <tr>
-          esp2: {{ StationsInfo.esp3 }}
-        </tr>
-      </div>
-    </el-card> -->
-
     <!-- 測試回覆 -->
     <el-card style="margin-bottom:30px;">
       <div class="emq-title">
         (測試)
       </div>
       <tr>
-        <span> {{ Message.UserMessage.macs }}</span>
+        <span> {{ Message.UserMessage.PositionMessage["1,1"]}}</span>
       </tr>
     </el-card>
 
@@ -86,25 +69,25 @@ export default {
     return {
       example: {
         topic: 'Topic: indoor/#',
-        message: '{"station":"esp1","info":[{"mac":"test1","rssi":70},{"mac":"test2","rssi":50},{"mac":"test3","rssi":70}]}',
+        message: '{"station":"esp1","info":[{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-52}]}',
       },
       Message: {
         StationsInfo: {
           //設定esp初始數值
-          esp1: { x: 10, y: 12, DistanceMeter: 30, EnvironFator: 2.2 },
-          esp2: { x: 20, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
-          esp3: { x: 30, y: 15, DistanceMeter: 30, EnvironFator: 2.2 },
+          esp1: { x: 100, y: 100, DistanceMeter: 50, EnvironFator: 2.2 },
+          esp2: { x: 900, y: 500, DistanceMeter: 60, EnvironFator: 2.2 },
+          esp3: { x: 200, y: 500, DistanceMeter: 60, EnvironFator: 2.2 },
         },
         UserMessage: {
-          //偵測到的beacon資訊(已處理過) //ex. beacons[mac][station]
-          beacons: {},
-          //偵測到的mac
-          macs: [],
+          //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
+          beacons: [],
+          //偵測到的MajorMinor
+          MajorMinor: [],
           //計算完位置訊息
           PositionMessage: [],
         },
       },
-      selectmac:"",
+      selectmac: "",
       //測試資訊
       user_receive: "",
       connection: {
@@ -142,19 +125,22 @@ export default {
       //["54:0e:72:66:99:59"]["esp1"]
 
 
-      // let macs = this.UserMessage.macs
-      // let beacons = this.UserMessage.beacons
+      let MajorMinor = this.Message.UserMessage.MajorMinor
+      let beacons = this.Message.UserMessage.beacons
 
-      // for (let index = 0; index < macs.length; index++) {
-      //   if (Object.keys(beacons[macs[index]]).length >= 3) {      //最少偵測到三台才計算
-      //     //取出三台最近的esp和相對RSSI值(暫時只做三台)
-      //     //let beacon = this.MinRssi_3Device(beacons[macs[index]])
+      for (let index = 0; index < MajorMinor.length; index++) {
+        if (Object.keys(beacons[MajorMinor[index]]).length >= 3) {      //最少偵測到三台才計算
+          //取出三台最近的esp和相對RSSI值(暫時只做三台)
+          //let beacon = this.MinRssi_3Device(beacons[MajorMinor[index]])
 
-      //     let [x, y] = this.CalculatePosition(beacons[macs[index]])
-      //     //紀錄位置訊息，下次取平均
-      //     this.UserMessage.PositionMessage[macs[index]] = { "x": x, "y": y }
-      //   }
-      // }
+          let [x, y] = this.CalculatePosition(beacons[MajorMinor[index]])
+
+          //紀錄位置訊息，下次取平均
+          this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x, "y": y }
+          this.DrawCanvas()
+
+        }
+      }
 
     },
     JsonProcess(message) {
@@ -170,54 +156,56 @@ export default {
         for (let i = 0; i < msg.info.length; i++) {
           //接收資料
           let station = msg.station
-          let mac = msg.info[i].mac
+          let m_m = msg.info[i].major + "," + msg.info[i].minor
           let ReceiveRssi = msg.info[i].rssi
           //網站資料
           let beacons = this.Message.UserMessage.beacons
-          let macs = this.Message.UserMessage.macs
-
-
-          if (typeof (beacons[mac]) !== 'object') {
+          let MajorMinor = this.Message.UserMessage.MajorMinor
+          
+          //判斷beacons[m_m]是否存在
+          if (typeof (beacons[m_m]) !== 'object') {
             // Initialize
-            beacons[mac] = []
-            macs.push(mac)
+            beacons[m_m] = []
+            MajorMinor.push(m_m)
           }
-          if (beacons[mac][station] == null) {
+          if (beacons[m_m][station] == null) {
 
             // Insert new record
-            beacons[mac][station] = parseInt(ReceiveRssi, 10)
+            beacons[m_m][station] = parseInt(ReceiveRssi, 10)
 
           }
           // -50 > -10 + -20 && -50 < -80 +20
-          else if (beacons[mac][station] + 15 >= ReceiveRssi && beacons[mac][station] - 15 <= ReceiveRssi) {
+          else if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi) {
             // Insert new record
-            beacons[mac][station] = parseInt((ReceiveRssi + beacons[mac][station]) / 2, 10)
+            beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
           }
         }
       }
     },
     //CalculatePosition return [x, y]
     CalculatePosition(beacon) {
-      function CalculateDistance(rssi, stations) {
+      function CalculateDistance(rssi, station) {
         // Distance = 10^((abs(RSSI) - DistanceMeter) / (10 * EnvironFator))
         // RSSI - 接收訊號強度(負值)
         // DistanceMeter - 發收跟接收相距1米的訊號強度
         // EnvironFator - 環境衰減因子
-        let DistanceMeter = stations.DistanceMeter
-        let EnvironFator = stations.EnvironFator
+        let DistanceMeter = station.DistanceMeter
+        let EnvironFator = station.EnvironFator
         let Distance = Math.pow(10, (Math.abs(rssi) - DistanceMeter) / (10 * EnvironFator))
 
         return Distance;
       }
 
       let stations = this.Message.StationsInfo
-      let input = [
-        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1.rssi, stations.esp1)],
-        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2.rssi, stations.esp2)],
-        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3.rssi, stations.esp3)]
-      ]
-      let output = trilat(input)
 
+      let input = [
+        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1, stations.esp1)],
+        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2, stations.esp2)],
+        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3, stations.esp3)]
+      ]
+
+      let output = trilat(input)
+      
       return [output[0], output[1]]
 
     },
@@ -230,7 +218,7 @@ export default {
       canvas.setAttribute("height", 600)
 
       this.DrawTablePhoto(context)
-      this.DrawTarget(context, this.UserMessage.PositionMessage)
+      this.DrawTarget(context, this.Message.UserMessage.PositionMessage)
     },
     DrawTablePhoto(context) {
       let x = 1100
@@ -266,13 +254,13 @@ export default {
       // context.drawImage(TargetImg, 520, 520, TargetImg.width, TargetImg.height)
       // TargetImg.onload = () => {
       // }
-      let macs = this.UserMessage.macs
+      let MajorMinor = this.Message.UserMessage.MajorMinor
 
-      for (let index = 0; index < macs.length; index++) {
+      for (let index = 0; index < MajorMinor.length; index++) {
         context.beginPath();
-        context.arc(PositionMessage[macs[index]].x, PositionMessage[macs[index]].y, 10, 0, 2 * Math.PI);
+        context.arc(PositionMessage[MajorMinor[index]].x+20, PositionMessage[MajorMinor[index]].y+20, 10, 0, 2 * Math.PI);
         context.stroke();
-        console.log(index + ":" + [PositionMessage[macs[index]].x, PositionMessage[macs[index]].y])
+        console.log(index + ":" + [PositionMessage[MajorMinor[index]].x, PositionMessage[MajorMinor[index]].y])
       }
     },
     DrawPhoto() {
