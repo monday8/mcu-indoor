@@ -11,10 +11,14 @@
 #define DataNum 5
 
 #include "user.h"
+//#include"user_example.h"
 
-//#include "esp1.h"
-#include "esp2.h"
+#include "esp1.h"
+//#include "esp2.h"
 //#include "esp3.h"
+#define ENDIAN_CHANGE_U16(x) ((((x)&0xFF00) >> 8) + (((x)&0xFF) << 8))
+//https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/examples/BLE_Beacon_Scanner/BLE_Beacon_Scanner.ino
+
 
 /*
 ########################################
@@ -30,14 +34,13 @@ BLEScan *pBLEScan;
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-
-
 String msgStr = "";
 char JSON[MQTT_MAX_PACKET_SIZE];
 
 typedef struct
 {
-    char address[17]; // 67:f1:d2:04:cd:5d
+    int major;
+    int minor;
     int rssi;
 } BeaconData;
 
@@ -45,7 +48,8 @@ BeaconData m_beacondata[DataNum];
 uint8_t beacondataIndex = 0;
 
 // Phone original UUID 2eadb97e-1dd2-11b2-8000-080027b246c5
-const String uuid = "b2270008-0080-b211-d21d-7eb9ad2e1502";
+const String uuid = "2eadb97e-1dd2-11b2-8000-080027b246c5";
+//const String uuid = "b2270008-0080-b211-d21d-7eb9ad2e1502"; //old
 
 // Scan Beacon Time
 const int BeaconScanTime = 3; // s
@@ -61,10 +65,12 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
         uint8_t *payload = advertisedDevice.getPayload();
         id.setData(payload);
 
-        String m_uuid = id.getProximityUUID().to128().toString().c_str();
+        //取得UUID，Major，Minor
+        String m_uuid = id.getProximityUUID().toString().c_str();
+        int m_major = ENDIAN_CHANGE_U16(id.getMajor());
+        int m_minor = ENDIAN_CHANGE_U16(id.getMinor());
 
         int m_rssi = advertisedDevice.haveRSSI() ? advertisedDevice.getRSSI() : 0;
-
         if (m_uuid == uuid)
         {
             if (beacondataIndex > DataNum) // DataNum define
@@ -75,7 +81,8 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
             {
                 beacondataIndex++;
             }
-            strcpy(m_beacondata[beacondataIndex].address, advertisedDevice.getAddress().toString().c_str());
+            m_beacondata[beacondataIndex].major = m_major;
+            m_beacondata[beacondataIndex].minor = m_minor;
             m_beacondata[beacondataIndex].rssi = m_rssi;
         }
     }
@@ -165,7 +172,7 @@ void Task_scanbeacon(void *pvParameters)
         for (int i = 0; i < DataNum; i++)
         {
             // {"mac":"test1","rssi":10}, //m:mac,r:rssi
-            msgStr = msgStr + "{\"mac\":\"" + m_beacondata[i].address + "\",\"rssi\":" + m_beacondata[i].rssi + "}";
+            msgStr = msgStr + "{\"major\":\"" + m_beacondata[i].major +"\",\"minor\":\"" + m_beacondata[i].minor+ "\",\"rssi\":" + m_beacondata[i].rssi + "}";
             if (i < DataNum - 1)
             {
                 msgStr += ',';

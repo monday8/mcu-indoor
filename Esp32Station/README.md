@@ -17,6 +17,16 @@ void BLEBeacon::setData(std::string data) {
 void BLEBeacon::setData(uint8_t* data) {
 	memcpy(&m_beaconData, data.data(), sizeof(m_beaconData));
 }
+________________________________________________________________________
+
+BLEUUID BLEBeacon::getProximityUUID() {
+	return BLEUUID(m_beaconData.proximityUUID, 16, false);
+}
+
+BLEUUID BLEBeacon::getProximityUUID() {
+	return BLEUUID(m_beaconData.proximityUUID, 16, true);
+}
+
 ```
 #### edit BLEBeacon.h
 #### setData(std::string data) -> setData(uint8_t* data)
@@ -33,9 +43,11 @@ BLEBeacon id;
 uint8_t *payload = advertisedDevice.getPayload();
 id.setData(payload);
 
-String m_uuid = id.getProximityUUID().to128().toString().c_str();
+String m_uuid = id.getProximityUUID().toString().c_str();
 
 ```
 
 ## esp32 MQTT Setting
 ### serve ip from computer "cmd->ipconfig ipv4 address"
+
+## user_example.h Required
