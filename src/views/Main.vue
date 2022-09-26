@@ -104,7 +104,7 @@
       </div>
       <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="4">
-          <div>MQTT連接狀態: {{connected?"已連接":"未連接"}}</div>
+          <div>MQTT連接狀態: {{client.connected?"已連接":"未連接"}}</div>
         </el-col>
 
       </el-row>
