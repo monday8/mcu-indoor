@@ -1,7 +1,7 @@
 <template>
   <div class="home-container">
     <!-- 顯示mac -->
-    <el-card shadow="always" style="margin-bottom:30px;">
+    <!-- <el-card shadow="always" style="margin-bottom:30px;">
       <el-form ref="subscription" hide-required-asterisk size="small" label-position="top" :model="subscription">
         <el-row :gutter="20">
           <el-col :span="8">
@@ -15,9 +15,79 @@
           </el-col>
         </el-row>
       </el-form>
-    </el-card>
-    <!-- 範例 -->
+    </el-card> -->
+    <div class="emq-title">
+      ESP Setting
+    </div>
     <el-card shadow="always" style="margin-bottom:30px;">
+      <div class="emq-title">
+        ESP1 Setting
+      </div>
+      <el-row :gutter="20">
+        <el-col :span="4">
+          <div>X座標:</div>
+          <el-input v-model="Message.StationsInfo.esp1.x"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>y座標:</div>
+          <el-input v-model="Message.StationsInfo.esp1.y"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>DistanceMeter:</div>
+          <el-input v-model="Message.StationsInfo.esp1.DistanceMeter"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>EnvironFator:</div>
+          <el-input v-model="Message.StationsInfo.esp1.EnvironFator"></el-input>
+        </el-col>
+      </el-row>
+      <div class="emq-title">
+        ESP2 Setting
+      </div>
+      <el-row :gutter="20">
+        <el-col :span="4">
+          <div>X座標:</div>
+          <el-input v-model="Message.StationsInfo.esp2.x"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>y座標:</div>
+          <el-input v-model="Message.StationsInfo.esp2.y"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>DistanceMeter:</div>
+          <el-input v-model="Message.StationsInfo.esp2.DistanceMeter"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>EnvironFator:</div>
+          <el-input v-model="Message.StationsInfo.esp2.EnvironFator"></el-input>
+        </el-col>
+      </el-row>
+      <div class="emq-title">
+        ESP3 Setting
+      </div>
+      <el-row :gutter="20">
+        <el-col :span="4">
+          <div>X座標:</div>
+          <el-input v-model="Message.StationsInfo.esp3.x"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>y座標:</div>
+          <el-input v-model="Message.StationsInfo.esp3.y"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>DistanceMeter:</div>
+          <el-input v-model="Message.StationsInfo.esp3.DistanceMeter"></el-input>
+        </el-col>
+        <el-col :span="4">
+          <div>EnvironFator:</div>
+          <el-input v-model="Message.StationsInfo.esp3.EnvironFator"></el-input>
+        </el-col>
+      </el-row>
+
+    </el-card>
+
+    <!-- 範例 -->
+    <!-- <el-card shadow="always" style="margin-bottom:30px;">
       <div class="emq-title">
         <tr>
           {{ example.topic }}
@@ -26,15 +96,24 @@
           TEST: {{ example.message }}
         </tr>
       </div>
-    </el-card>
+    </el-card> -->
     <!-- 測試回覆 -->
     <el-card style="margin-bottom:30px;">
       <div class="emq-title">
         (測試)
       </div>
-      <tr>
-        <span> {{ Message.UserMessage.PositionMessage["1,1"]}}</span>
-      </tr>
+      <el-row :gutter="20" style="margin-bottom:10px;">
+        <el-col :span="4">
+          <div>MQTT連接狀態: {{connected?"已連接":"未連接"}}</div>
+        </el-col>
+
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="4">
+          <div>測試消息: {{user_receive}}</div>
+        </el-col>
+
+      </el-row>
     </el-card>
 
     <!-- 室內定位圖 -->
@@ -87,7 +166,6 @@ export default {
           PositionMessage: [],
         },
       },
-      selectmac: "",
       //測試資訊
       user_receive: "",
       connection: {
@@ -161,7 +239,7 @@ export default {
           //網站資料
           let beacons = this.Message.UserMessage.beacons
           let MajorMinor = this.Message.UserMessage.MajorMinor
-          
+
           //判斷beacons[m_m]是否存在
           if (typeof (beacons[m_m]) !== 'object') {
             // Initialize
@@ -205,7 +283,7 @@ export default {
       ]
 
       let output = trilat(input)
-      
+
       return [output[0], output[1]]
 
     },
@@ -258,7 +336,7 @@ export default {
 
       for (let index = 0; index < MajorMinor.length; index++) {
         context.beginPath();
-        context.arc(PositionMessage[MajorMinor[index]].x+20, PositionMessage[MajorMinor[index]].y+20, 10, 0, 2 * Math.PI);
+        context.arc(PositionMessage[MajorMinor[index]].x + 20, PositionMessage[MajorMinor[index]].y + 20, 10, 0, 2 * Math.PI);
         context.stroke();
         console.log(index + ":" + [PositionMessage[MajorMinor[index]].x, PositionMessage[MajorMinor[index]].y])
       }
