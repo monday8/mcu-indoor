@@ -1,103 +1,5 @@
 <template>
   <div class="home-container">
-    <!-- 顯示mac -->
-    <!-- <el-card shadow="always" style="margin-bottom:30px;">
-      <el-form ref="subscription" hide-required-asterisk size="small" label-position="top" :model="subscription">
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <el-form-item prop="Selectmac" label="選擇mac">
-              <el-select v-model="selectmac">
-                <el-option v-for="(item, index) in Message.UserMessage.MajorMinor" :key="index"
-                  :label="Message.UserMessage.MajorMinor[index]" :value="Message.UserMessage.MajorMinor[index]">
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </el-form>
-    </el-card> -->
-    <div class="emq-title">
-      ESP Setting
-    </div>
-    <el-card shadow="always" style="margin-bottom:30px;">
-      <div class="emq-title">
-        ESP1 Setting
-      </div>
-      <el-row :gutter="20">
-        <el-col :span="4">
-          <div>X座標:</div>
-          <el-input v-model="Message.StationsInfo.esp1.x"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>y座標:</div>
-          <el-input v-model="Message.StationsInfo.esp1.y"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>DistanceMeter:</div>
-          <el-input v-model="Message.StationsInfo.esp1.DistanceMeter"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>EnvironFator:</div>
-          <el-input v-model="Message.StationsInfo.esp1.EnvironFator"></el-input>
-        </el-col>
-      </el-row>
-      <div class="emq-title">
-        ESP2 Setting
-      </div>
-      <el-row :gutter="20">
-        <el-col :span="4">
-          <div>X座標:</div>
-          <el-input v-model="Message.StationsInfo.esp2.x"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>y座標:</div>
-          <el-input v-model="Message.StationsInfo.esp2.y"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>DistanceMeter:</div>
-          <el-input v-model="Message.StationsInfo.esp2.DistanceMeter"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>EnvironFator:</div>
-          <el-input v-model="Message.StationsInfo.esp2.EnvironFator"></el-input>
-        </el-col>
-      </el-row>
-      <div class="emq-title">
-        ESP3 Setting
-      </div>
-      <el-row :gutter="20">
-        <el-col :span="4">
-          <div>X座標:</div>
-          <el-input v-model="Message.StationsInfo.esp3.x"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>y座標:</div>
-          <el-input v-model="Message.StationsInfo.esp3.y"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>DistanceMeter:</div>
-          <el-input v-model="Message.StationsInfo.esp3.DistanceMeter"></el-input>
-        </el-col>
-        <el-col :span="4">
-          <div>EnvironFator:</div>
-          <el-input v-model="Message.StationsInfo.esp3.EnvironFator"></el-input>
-        </el-col>
-      </el-row>
-
-    </el-card>
-
-    <!-- 範例 -->
-    <!-- <el-card shadow="always" style="margin-bottom:30px;">
-      <div class="emq-title">
-        <tr>
-          {{ example.topic }}
-        </tr>
-        <tr>
-          TEST: {{ example.message }}
-        </tr>
-      </div>
-    </el-card> -->
-    <!-- 測試回覆 -->
     <el-card style="margin-bottom:30px;">
       <div class="emq-title">
         (測試)
@@ -110,7 +12,7 @@
       </el-row>
       <el-row :gutter="20">
         <el-col :span="4">
-          <div>測試消息: {{user_receive}}</div>
+          <div>測試消息: {{Message.UserMessage.PositionMessage["1,2"]}}</div>
         </el-col>
 
       </el-row>
@@ -151,12 +53,12 @@ export default {
         message: '{"station":"esp1","info":[{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-52}]}',
       },
       Message: {
-        StationsInfo: {
+        StationsInfo: [
           //設定esp初始數值
-          esp1: { x: 100, y: 100, DistanceMeter: 50, EnvironFator: 2.2 },
-          esp2: { x: 900, y: 500, DistanceMeter: 60, EnvironFator: 2.2 },
-          esp3: { x: 200, y: 500, DistanceMeter: 60, EnvironFator: 2.2 },
-        },
+          { name: "esp1", x: 600, y: 340, DistanceMeter: 60, EnvironFator: 1.2 },
+          { name: "esp2", x: 700, y: 300, DistanceMeter: 60, EnvironFator: 1.2 },
+          { name: "esp3", x: 620, y: 300, DistanceMeter: 60, EnvironFator: 1.2 },
+        ],
         UserMessage: {
           //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
           beacons: [],
@@ -168,6 +70,7 @@ export default {
       },
       //測試資訊
       user_receive: "",
+      Selectesp: "",
       connection: {
         host: '127.0.0.1',
         port: 1884,
@@ -202,22 +105,26 @@ export default {
 
       //["54:0e:72:66:99:59"]["esp1"]
 
-
       let MajorMinor = this.Message.UserMessage.MajorMinor
       let beacons = this.Message.UserMessage.beacons
+      let stations = this.Message.StationsInfo
 
       for (let index = 0; index < MajorMinor.length; index++) {
         if (Object.keys(beacons[MajorMinor[index]]).length >= 3) {      //最少偵測到三台才計算
           //取出三台最近的esp和相對RSSI值(暫時只做三台)
           //let beacon = this.MinRssi_3Device(beacons[MajorMinor[index]])
 
-          let [x, y] = this.CalculatePosition(beacons[MajorMinor[index]])
+          let [x, y] = this.CalculatePosition(beacons[MajorMinor[index]], stations)
 
           //紀錄位置訊息，下次取平均
           this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x, "y": y }
-          this.DrawCanvas()
 
         }
+      }
+      console.log(Object.keys(this.Message.UserMessage.PositionMessage).length)
+      //計算完位置的beacon大於0個
+      if (Object.keys(this.Message.UserMessage.PositionMessage).length > 0) {
+        this.DrawCanvas()
       }
 
     },
@@ -246,6 +153,7 @@ export default {
             beacons[m_m] = []
             MajorMinor.push(m_m)
           }
+
           if (beacons[m_m][station] == null) {
 
             // Insert new record
@@ -253,7 +161,8 @@ export default {
 
           }
           // -50 > -10 + -20 && -50 < -80 +20
-          else if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi) {
+          else {
+            //if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi)
             // Insert new record
             beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
           }
@@ -261,7 +170,7 @@ export default {
       }
     },
     //CalculatePosition return [x, y]
-    CalculatePosition(beacon) {
+    CalculatePosition(beacon, stations) {
       function CalculateDistance(rssi, station) {
         // Distance = 10^((abs(RSSI) - DistanceMeter) / (10 * EnvironFator))
         // RSSI - 接收訊號強度(負值)
@@ -274,18 +183,15 @@ export default {
         return Distance;
       }
 
-      let stations = this.Message.StationsInfo
-
       let input = [
-        [stations.esp1.x, stations.esp1.y, CalculateDistance(beacon.esp1, stations.esp1)],
-        [stations.esp2.x, stations.esp2.y, CalculateDistance(beacon.esp2, stations.esp2)],
-        [stations.esp3.x, stations.esp3.y, CalculateDistance(beacon.esp3, stations.esp3)]
+        [stations[0].x, stations[0].y, CalculateDistance(beacon.esp1, stations[0])],
+        [stations[1].x, stations[1].y, CalculateDistance(beacon.esp2, stations[1])],
+        [stations[2].x, stations[2].y, CalculateDistance(beacon.esp3, stations[2])]
       ]
 
       let output = trilat(input)
 
       return [output[0], output[1]]
-
     },
     DrawCanvas() {
 
@@ -297,6 +203,7 @@ export default {
 
       this.DrawTablePhoto(context)
       this.DrawTarget(context, this.Message.UserMessage.PositionMessage)
+      this.DrawStations(context)
     },
     DrawTablePhoto(context) {
       let x = 1100
@@ -326,19 +233,30 @@ export default {
       }
 
     },
-    DrawTarget(context, PositionMessage) {
-      // let TargetImg = new Image() //New Object
-      // TargetImg.src = target
-      // context.drawImage(TargetImg, 520, 520, TargetImg.width, TargetImg.height)
-      // TargetImg.onload = () => {
-      // }
-      let MajorMinor = this.Message.UserMessage.MajorMinor
+    DrawStations(context) {
+      let m_Stations = this.Message.StationsInfo
 
+      for (let index = 0; index < m_Stations.length; index++) {
+        context.beginPath();
+        context.arc(m_Stations[index].x + 20, m_Stations[index].y + 20, 12, 0, 2 * Math.PI);
+        context.fillStyle = "#636766"; //設定填滿圖形時用的顏色.
+        context.fill();
+
+        context.font = "20px Arial bolder"
+        context.fillStyle = 'red'
+        context.fillText(m_Stations[index].name, m_Stations[index].x + 15, m_Stations[index].y + 40)
+      }
+    },
+    DrawTarget(context, PositionMessage) {
+      let MajorMinor = this.Message.UserMessage.MajorMinor
       for (let index = 0; index < MajorMinor.length; index++) {
         context.beginPath();
-        context.arc(PositionMessage[MajorMinor[index]].x + 20, PositionMessage[MajorMinor[index]].y + 20, 10, 0, 2 * Math.PI);
-        context.stroke();
-        console.log(index + ":" + [PositionMessage[MajorMinor[index]].x, PositionMessage[MajorMinor[index]].y])
+        context.arc(PositionMessage[MajorMinor[index]].x + 20, PositionMessage[MajorMinor[index]].y + 20, 12, 0, 2 * Math.PI);
+        context.fill();
+
+        context.font = "20px Arial bolder"
+        context.fillStyle = 'red'
+        context.fillText(MajorMinor[index], PositionMessage[MajorMinor[index]].x + 15, PositionMessage[MajorMinor[index]].y + 40)
       }
     },
     DrawPhoto() {
