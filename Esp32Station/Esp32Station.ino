@@ -75,7 +75,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
             int m_minor = ENDIAN_CHANGE_U16(id.getMinor());
 
             int m_rssi = advertisedDevice.haveRSSI() ? advertisedDevice.getRSSI() : 0;
-
+            Serial.println(m_rssi);
             if (beacondataIndex > DataNum) // DataNum define
             {
                 beacondataIndex = 0;

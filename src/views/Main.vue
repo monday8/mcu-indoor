@@ -12,7 +12,7 @@
       </el-row>
       <el-row :gutter="20">
         <el-col :span="4">
-          <div>測試消息: {{Message.UserMessage.PositionMessage["1,2"]}}</div>
+          <div>測試消息: </div>
         </el-col>
 
       </el-row>
@@ -55,9 +55,9 @@ export default {
       Message: {
         StationsInfo: [
           //設定esp初始數值
-          { name: "esp1", x: 600, y: 340, DistanceMeter: 60, EnvironFator: 1.2 },
-          { name: "esp2", x: 700, y: 300, DistanceMeter: 60, EnvironFator: 1.2 },
-          { name: "esp3", x: 620, y: 300, DistanceMeter: 60, EnvironFator: 1.2 },
+          { name: "esp1", x: 0, y: 25, DistanceMeter: 40, EnvironFator: 3 ,px:40},
+          { name: "esp2", x: 240, y: 550, DistanceMeter: 60, EnvironFator: 4 ,px:60},
+          { name: "esp3", x: 940, y: 25, DistanceMeter: 60, EnvironFator: 4 ,px:60},
         ],
         UserMessage: {
           //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
@@ -117,7 +117,7 @@ export default {
           let [x, y] = this.CalculatePosition(beacons[MajorMinor[index]], stations)
 
           //紀錄位置訊息，下次取平均
-          this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x, "y": y }
+          this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x+50, "y": y+50 }
 
         }
       }
@@ -160,12 +160,16 @@ export default {
             beacons[m_m][station] = parseInt(ReceiveRssi, 10)
 
           }
-          // -50 > -10 + -20 && -50 < -80 +20
-          else {
-            //if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi)
-            // Insert new record
+          else{
             beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
           }
+          // -50 > -10 + -20 && -50 < -80 +20
+          // else {
+          //   if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi) {
+          //     // Insert new record
+          //     beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
+          //   }
+          // }
         }
       }
     },
@@ -178,9 +182,12 @@ export default {
         // EnvironFator - 環境衰減因子
         let DistanceMeter = station.DistanceMeter
         let EnvironFator = station.EnvironFator
+        let Px = station.px
         let Distance = Math.pow(10, (Math.abs(rssi) - DistanceMeter) / (10 * EnvironFator))
 
-        return Distance;
+
+        console.log(station.name+"Distance: "+Distance)
+        return Distance*Px;
       }
 
       let input = [
@@ -188,9 +195,11 @@ export default {
         [stations[1].x, stations[1].y, CalculateDistance(beacon.esp2, stations[1])],
         [stations[2].x, stations[2].y, CalculateDistance(beacon.esp3, stations[2])]
       ]
+      console.log(input)
 
       let output = trilat(input)
 
+      console.log(output)
       return [output[0], output[1]]
     },
     DrawCanvas() {
