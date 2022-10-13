@@ -1,63 +1,104 @@
 <template>
   <div class="home-container">
     <el-card style="margin-bottom:30px;">
-      <div class="emq-title">
-        (測試)
-      </div>
+      <el-row :gutter="20" style="margin-bottom:15px;">
+        <div class="emq-title">
+          功能區
+        </div>
+        <!-- 偵測進入區域功能 -->
+        <el-col :span="8">
+          <el-button :disabled="FunctionMenu.m_AreaMsg" size="small" class="conn-btn" round
+            @click="buttonclick('AreaMsg')">
+            偵測進入區域功能
+          </el-button>
+        </el-col>
+        <!-- 查看自己定位 -->
+        <el-col :span="8">
+          <el-button :disabled="FunctionMenu.m_MyPosition" size="small" class="conn-btn" round
+            @click="buttonclick('MyPosition')">
+            查看自己定位
+          </el-button>
+        </el-col>
+        <!-- 顯示物品位置圖 -->
+        <el-col :span="8">
+          <el-button :disabled="FunctionMenu.m_ViewObject" size="small" class="conn-btn" round
+            @click="buttonclick('ViewObject')">
+            顯示物品位置圖
+          </el-button>
+        </el-col>
+      </el-row>
+      <!-- MQTT連接狀態 -->
       <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="4">
           <div>MQTT連接狀態: {{client.connected?"已連接":"未連接"}}</div>
         </el-col>
 
       </el-row>
-      <el-row :gutter="20">
-        <el-col :span="4">
-          <div>測試消息: </div>
+      <!-- 目前啟用功能 -->
+      <el-row :gutter="20" style="margin-bottom:10px;">
+        <el-col :span="8">
+          <div>目前啟用功能:
+            {{FunctionMenu.m_AreaMsg ? '偵測進入區域功能' : FunctionMenu.m_ViewObject ? '顯示物品位置圖' : FunctionMenu.m_MyPosition ?
+            '查看自己定位' : '目前無啟用功能'}}
+          </div>
         </el-col>
-
+      </el-row>
+      <!-- 偵測到beacon數量 -->
+      <el-row :gutter="20">
+        <el-col :span="8">
+          <div>偵測到beacon數量: {{Message.UserMessage.AmountOfBeacon}}</div>
+        </el-col>
       </el-row>
     </el-card>
-
-    <!-- 室內定位圖 -->
-    <el-card style="margin-bottom:20px;">
-      <div class="emq-title">
-        室內定位圖
-      </div>
-      <el-button type="success" size="small" class="conn-btn" style="margin-right: 20px;" @click="DrawCanvas">
-        CanvasTest
-      </el-button>
-    </el-card>
-    <!-- IndoorPosition IMG -->
-    <div style="width:400px">
-      <!-- <img :src="indoor" class="img" alt="" /> -->
-      <canvas id="mycanvas" width='1100' height='1000' class="my-canvas"></canvas>
+    <!-- 選擇Beacon -->
+    <div v-if="FunctionMenu.m_MyPosition ||FunctionMenu.m_AreaMsg">
+      <el-card style="margin-bottom:30px;">
+        <div class="emq-title">
+          選擇Beacon
+        </div>
+        <el-select v-model="Message.FuntionMessage.ChioceDevice">
+          <el-option v-for="(item, index) in Message.UserMessage.MajorMinor"
+            :key="Message.UserMessage.MajorMinor[index]" :label="Message.UserMessage.MajorMinor[index]"
+            :value="Message.UserMessage.MajorMinor[index]">
+          </el-option>
+        </el-select>
+      </el-card>
     </div>
-
+    <!-- Canvas -->
+    <div
+      v-if="(FunctionMenu.m_ViewObject) || (Message.FuntionMessage.ChioceDevice !== '' && FunctionMenu.m_MyPosition === true)">
+      <el-card style="margin-bottom:30px;">
+        <canvas id="mycanvas" width="100%" height="100%" class="my-canvas"></canvas>
+      </el-card>
+    </div>
   </div>
 </template>
 
 <script>
 import mqtt from 'mqtt'
-import trilat from 'trilat'
+import trilat from 'trilat' //trilat 解方程式
+import axios from 'axios' //axios,qs 串接line
+import qs from 'qs'
 
 //引入圖片 indoor,target
-import indoor from "@/assets/img/indoor.png"
-import target from "@/assets/img/target.png"
+import indoor from "@/assets/img/room.png"
+//import target from "@/assets/img/target.png"
 
 export default {
   name: 'Home',
   data() {
     return {
-      example: {
-        topic: 'Topic: indoor/#',
-        message: '{"station":"esp1","info":[{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-51},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-53},{"major":"1","minor":"1","rssi":-52}]}',
-      },
+      //Main Message
       Message: {
         StationsInfo: [
+          //原始數據
+          // esp1 x:0 y:30
+          // esp2 x:240 y:640
+          // esp3 x:940 y:30 
           //設定esp初始數值
-          { name: "esp1", x: 0, y: 25, DistanceMeter: 40, EnvironFator: 3 ,px:40},
-          { name: "esp2", x: 240, y: 550, DistanceMeter: 60, EnvironFator: 4 ,px:60},
-          { name: "esp3", x: 940, y: 25, DistanceMeter: 60, EnvironFator: 4 ,px:60},
+          { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
         ],
         UserMessage: {
           //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
@@ -66,11 +107,21 @@ export default {
           MajorMinor: [],
           //計算完位置訊息
           PositionMessage: [],
+          AmountOfBeacon: 0,
+        },
+        FuntionMessage: {
+          ChioceDevice: "",
+          AreaIndex: 0, //進入房間 1、客廳 2、廁所 3 預設0 判斷是否進入過哪裡
         },
       },
-      //測試資訊
-      user_receive: "",
-      Selectesp: "",
+      //Funtion Menu
+      FunctionMenu: {
+        m_ViewObject: false,
+        m_AreaMsg: false,
+        m_MyPosition: false,
+      },
+      linemsg: "",
+      //MQTT Msg
       connection: {
         host: '127.0.0.1',
         port: 1884,
@@ -103,31 +154,132 @@ export default {
       //處理JSON，RSSI取平均值，波動大不取。
       this.JsonProcess(message)
 
-      //["54:0e:72:66:99:59"]["esp1"]
-
       let MajorMinor = this.Message.UserMessage.MajorMinor
       let beacons = this.Message.UserMessage.beacons
       let stations = this.Message.StationsInfo
 
       for (let index = 0; index < MajorMinor.length; index++) {
-        if (Object.keys(beacons[MajorMinor[index]]).length >= 3) {      //最少偵測到三台才計算
-          //取出三台最近的esp和相對RSSI值(暫時只做三台)
-          //let beacon = this.MinRssi_3Device(beacons[MajorMinor[index]])
-
+        if (Object.keys(beacons[MajorMinor[index]]).length >= 3) {      //最少偵測到三台ESP32才計算
           let [x, y] = this.CalculatePosition(beacons[MajorMinor[index]], stations)
 
           //紀錄位置訊息，下次取平均
-          this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x+50, "y": y+50 }
-
+          this.Message.UserMessage.PositionMessage[MajorMinor[index]] = { "x": x + 50, "y": y + 50 }
         }
       }
-      console.log(Object.keys(this.Message.UserMessage.PositionMessage).length)
-      //計算完位置的beacon大於0個
-      if (Object.keys(this.Message.UserMessage.PositionMessage).length > 0) {
-        this.DrawCanvas()
+
+      ////  功能區  ////
+      if (Object.keys(this.Message.UserMessage.PositionMessage).length > 0) { //計算完位置的beacon大於0個
+        //所有功能開始
+        if (this.FunctionMenu.m_AreaMsg) {  //進入偵測功能
+          if (this.Message.FuntionMessage.ChioceDevice == "") {
+            console.log("尚未選取設備")
+          } else {
+            this.AreaMsg()
+          }
+        } else if (this.FunctionMenu.m_MyPosition) {
+          if (this.Message.FuntionMessage.ChioceDevice == "") {
+            console.log("尚未選取設備")
+          } else {
+            this.MyPosition()
+          }
+        } else if (this.FunctionMenu.m_ViewObject) {   //查看定位物品圖功能
+          this.ViewObject()
+        }
       }
 
     },
+    ////功能區////
+    AreaMsg() {
+      console.log("使用AreaMsg功能")
+
+      //取得選取的beacon
+      let SelectDevice = this.Message.FuntionMessage.ChioceDevice
+      //取得鎖定beacon的x,y
+      let [x, y] = [this.Message.UserMessage.PositionMessage[SelectDevice].x, this.Message.UserMessage.PositionMessage[SelectDevice].y]
+      //定位區域的位置
+      let room_x_start = 0, room_y_start = 0, room_x_end = 500, room_y_end = 500
+      let living_x_start = 500, living_y_start = 500, living_x_end = 600, living_y_end = 600
+      let bath_x_start = 600, bath_y_start = 600, bath_x_end = 700, bath_y_end = 700
+
+      if (this.Message.FuntionMessage.AreaIndex != 1) {
+        this.linemsg = "進入房間"
+        this.SendLineMsg()
+        this.Message.FuntionMessage.AreaIndex = 1
+      }
+
+
+      //進行位置判斷並發送Line訊息
+      if (x > room_x_start && x < room_x_end && y > room_y_start && y < room_y_end) {
+        if (this.Message.FuntionMessage.AreaIndex != 1) {
+          this.linemsg = "進入房間"
+          this.SendLineMsg()
+          this.Message.FuntionMessage.AreaIndex = 1
+        }
+      }
+      if (x > living_x_start && x < living_x_end && y > living_y_start && y < living_y_end) {
+        if (this.Message.FuntionMessage.AreaIndex != 2) {
+          this.linemsg = "進入客廳"
+          this.SendLineMsg()
+          this.Message.FuntionMessage.AreaIndex = 2
+        }
+      }
+      if (x > bath_x_start && x < bath_x_end && y > bath_y_start && y < bath_y_end) {
+        if (this.Message.FuntionMessage.AreaIndex != 3) {
+          this.linemsg = "進入廁所"
+          this.SendLineMsg()
+          this.Message.FuntionMessage.AreaIndex = 3
+        }
+      }
+
+    },
+    MyPosition() {
+      console.log("MyPosition功能")
+      this.DrawMyPosition()
+    },
+    ViewObject() {
+      console.log("ViewObject功能")
+      this.DrawViewObject()
+    },
+    SendLineMsg() {
+      let msg = this.linemsg
+      axios({
+        method: "post",
+        url: "/api/linemsg/with/key/",
+        transformRequest: [function (data) {
+          return qs.stringify(data)
+        }],
+        data: {
+          value1: msg
+        }
+      }).catch((error) => console.log(error))
+      console.log("已發送: " + msg)
+    },
+
+    buttonclick(str) {
+      switch (str) {
+        case "AreaMsg":
+          this.FunctionMenu.m_AreaMsg = true
+          this.FunctionMenu.m_MyPosition = false
+          this.FunctionMenu.m_ViewObject = false
+          break
+        case "MyPosition":
+          this.FunctionMenu.m_AreaMsg = false
+          this.FunctionMenu.m_MyPosition = true
+          this.FunctionMenu.m_ViewObject = false
+          //判斷進入的功能重設
+          this.Message.FuntionMessage.AreaIndex = 0
+          break
+        case "ViewObject":
+          this.FunctionMenu.m_AreaMsg = false
+          this.FunctionMenu.m_MyPosition = false
+          this.FunctionMenu.m_ViewObject = true
+          //判斷進入的功能重設
+          this.Message.FuntionMessage.AreaIndex = 0
+          break
+      }
+    },
+
+
     JsonProcess(message) {
 
       let msg = JSON.parse(message)
@@ -142,6 +294,7 @@ export default {
           //接收資料
           let station = msg.station
           let m_m = msg.info[i].major + "," + msg.info[i].minor
+          if (m_m == "0,0") return  //去除預設 0,0之設備
           let ReceiveRssi = msg.info[i].rssi
           //網站資料
           let beacons = this.Message.UserMessage.beacons
@@ -152,6 +305,8 @@ export default {
             // Initialize
             beacons[m_m] = []
             MajorMinor.push(m_m)
+            //beacon數量增加
+            this.Message.UserMessage.AmountOfBeacon += 1
           }
 
           if (beacons[m_m][station] == null) {
@@ -160,18 +315,12 @@ export default {
             beacons[m_m][station] = parseInt(ReceiveRssi, 10)
 
           }
-          else{
+          else {
             beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
           }
-          // -50 > -10 + -20 && -50 < -80 +20
-          // else {
-          //   if (beacons[m_m][station] + 20 >= ReceiveRssi && beacons[m_m][station] - 20 <= ReceiveRssi) {
-          //     // Insert new record
-          //     beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
-          //   }
-          // }
         }
       }
+
     },
     //CalculatePosition return [x, y]
     CalculatePosition(beacon, stations) {
@@ -185,9 +334,7 @@ export default {
         let Px = station.px
         let Distance = Math.pow(10, (Math.abs(rssi) - DistanceMeter) / (10 * EnvironFator))
 
-
-        console.log(station.name+"Distance: "+Distance)
-        return Distance*Px;
+        return Distance * Px;
       }
 
       let input = [
@@ -195,25 +342,97 @@ export default {
         [stations[1].x, stations[1].y, CalculateDistance(beacon.esp2, stations[1])],
         [stations[2].x, stations[2].y, CalculateDistance(beacon.esp3, stations[2])]
       ]
-      console.log(input)
 
+      //console.log(input)
       let output = trilat(input)
-
-      console.log(output)
       return [output[0], output[1]]
     },
-    DrawCanvas() {
 
+    /////主要畫圖/////
+    DrawViewObject() {
       let canvas = document.getElementById("mycanvas");//New canvas
       let context = canvas.getContext("2d"); //創立畫布
 
-      canvas.setAttribute("width", 1100)
-      canvas.setAttribute("height", 600)
-
-      this.DrawTablePhoto(context)
-      this.DrawTarget(context, this.Message.UserMessage.PositionMessage)
-      this.DrawStations(context)
+      this.DrawPhoto(context)
     },
+    DrawMyPosition() {
+      let canvas = document.getElementById("mycanvas");//New canvas
+      let context = canvas.getContext("2d"); //創立畫布
+
+      this.DrawPhoto(context)
+    },
+
+    DrawStations(context) {
+      let m_Stations = this.Message.StationsInfo
+
+      for (let index = 0; index < m_Stations.length; index++) {
+        context.beginPath();
+        context.arc(m_Stations[index].x + 20, m_Stations[index].y + 20, 12, 0, 2 * Math.PI);
+        context.fillStyle = "#636766"; //設定填滿圖形時用的顏色.
+        context.fill();
+
+        context.font = "20px Arial bolder"
+        context.fillStyle = 'red'
+        context.fillText(m_Stations[index].name, m_Stations[index].x + 15, m_Stations[index].y + 50)
+      }
+    },
+    DrawTarget(context, PositionMessage) {
+      let MajorMinor = this.Message.UserMessage.MajorMinor
+      let FunctionMenu = this.FunctionMenu
+      //判斷選取功能 自己位置or物品位置圖
+      if (FunctionMenu.m_MyPosition) {  //自己位置功能
+        let SelectDevice = this.Message.FuntionMessage.ChioceDevice
+
+        context.beginPath();
+        context.arc(PositionMessage[SelectDevice].x + 20, PositionMessage[SelectDevice].y + 20, 12, 0, 2 * Math.PI);
+        context.fill();
+
+        context.font = "20px Arial bolder"
+        context.fillStyle = 'red'
+        context.fillText(SelectDevice, PositionMessage[SelectDevice].x + 15, PositionMessage[SelectDevice].y + 50)
+      }
+      else if (FunctionMenu.m_ViewObject) { //物品位置圖
+        for (let index = 0; index < MajorMinor.length; index++) {
+          if (typeof (PositionMessage[MajorMinor[index]]) !== "undefined") {
+            context.beginPath();
+            context.arc(PositionMessage[MajorMinor[index]].x + 20, PositionMessage[MajorMinor[index]].y + 20, 12, 0, 2 * Math.PI);
+            context.fill();
+
+            context.font = "20px Arial bolder"
+            context.fillStyle = 'red'
+            context.fillText(MajorMinor[index], PositionMessage[MajorMinor[index]].x + 15, PositionMessage[MajorMinor[index]].y + 50)
+          }
+        }
+      }
+
+
+    },
+    DrawPhoto() {
+      let canvas = document.getElementById("mycanvas");//New canvas
+      let context = canvas.getContext("2d"); //創立畫布
+
+      //let TargetImg = new Image(); //New Object
+      let IndoorImg = new Image();
+
+      //TargetImg.src = target;
+      IndoorImg.src = indoor;
+
+      //load image
+      IndoorImg.onload = () => {
+        canvas.setAttribute("width", IndoorImg.width)
+        canvas.setAttribute("height", IndoorImg.height)
+
+        //繪製底圖
+        context.drawImage(IndoorImg, 0, 0, IndoorImg.width, IndoorImg.height)
+
+        //繪製基地台
+        this.DrawStations(context)
+        //繪製目標
+        this.DrawTarget(context, this.Message.UserMessage.PositionMessage)
+      }
+
+    },
+    //測試畫圖功能
     DrawTablePhoto(context) {
       let x = 1100
       let y = 600
@@ -242,56 +461,39 @@ export default {
       }
 
     },
-    DrawStations(context) {
-      let m_Stations = this.Message.StationsInfo
+    DrawTargetTest(context) {
+      //1
+      context.beginPath();
+      context.arc(200 + 20, 100 + 20, 12, 0, 2 * Math.PI);
+      context.fill();
 
-      for (let index = 0; index < m_Stations.length; index++) {
-        context.beginPath();
-        context.arc(m_Stations[index].x + 20, m_Stations[index].y + 20, 12, 0, 2 * Math.PI);
-        context.fillStyle = "#636766"; //設定填滿圖形時用的顏色.
-        context.fill();
+      context.font = "20px Arial bolder"
+      context.fillStyle = 'red'
+      context.fillText("1,1", 200 + 15, 100 + 40)
+      //2
+      context.beginPath();
+      context.arc(700 + 20, 50 + 20, 12, 0, 2 * Math.PI);
+      context.fill();
 
-        context.font = "20px Arial bolder"
-        context.fillStyle = 'red'
-        context.fillText(m_Stations[index].name, m_Stations[index].x + 15, m_Stations[index].y + 40)
-      }
-    },
-    DrawTarget(context, PositionMessage) {
-      let MajorMinor = this.Message.UserMessage.MajorMinor
-      for (let index = 0; index < MajorMinor.length; index++) {
-        context.beginPath();
-        context.arc(PositionMessage[MajorMinor[index]].x + 20, PositionMessage[MajorMinor[index]].y + 20, 12, 0, 2 * Math.PI);
-        context.fill();
+      context.font = "20px Arial bolder"
+      context.fillStyle = 'red'
+      context.fillText("1,2", 700 + 15, 50 + 40)
+      //3
+      context.beginPath();
+      context.arc(400 + 20, 150 + 20, 12, 0, 2 * Math.PI);
+      context.fill();
 
-        context.font = "20px Arial bolder"
-        context.fillStyle = 'red'
-        context.fillText(MajorMinor[index], PositionMessage[MajorMinor[index]].x + 15, PositionMessage[MajorMinor[index]].y + 40)
-      }
-    },
-    DrawPhoto() {
-      //console.log(this.message);
-      let canvas = document.getElementById("mycanvas");//New canvas
-      let context = canvas.getContext("2d"); //創立畫布
+      context.font = "20px Arial bolder"
+      context.fillStyle = 'red'
+      context.fillText("1,3", 400 + 15, 150 + 40)
+      //4
+      context.beginPath();
+      context.arc(150 + 20, 300 + 20, 12, 0, 2 * Math.PI);
+      context.fill();
 
-      let TargetImg = new Image(); //New Object
-      let IndoorImg = new Image();
-
-      TargetImg.src = target;
-      IndoorImg.src = indoor;
-
-      //load image
-      IndoorImg.onload = () => {
-        canvas.setAttribute("width", IndoorImg.width)
-        canvas.setAttribute("height", IndoorImg.height)
-
-        //繪製底圖
-        context.drawImage(IndoorImg, 0, 0, IndoorImg.width, IndoorImg.height);
-        //繪製目標圖
-        for (let index = 0; index < this.UserData.length; index++) {
-          context.drawImage(TargetImg, this.UserData[index].x, this.UserData[index].y, TargetImg.width, TargetImg.height);
-        }
-      };
-
+      context.font = "20px Arial bolder"
+      context.fillStyle = 'red'
+      context.fillText("1,4", 150 + 15, 300 + 40)
     },
 
     //MQTT Connection,subscribe...
@@ -370,6 +572,12 @@ export default {
   .el-button--success {
     background-color: #34c388 !important;
     border-color: #34c388 !important;
+    font-size: 14px !important;
+  }
+
+  .el-button--success:hover {
+    background-color: #f5222d !important;
+    border-color: #f5222d !important;
     font-size: 14px !important;
   }
 
