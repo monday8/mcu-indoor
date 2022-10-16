@@ -13,8 +13,8 @@
 #include "user.h"
 //#include"user_example.h"
 
-//#include "esp1.h"
-#include "esp2.h"
+#include "esp1.h"
+//#include "esp2.h"
 //#include "esp3.h"
 
 // uint16 轉int
@@ -50,11 +50,10 @@ uint8_t beacondataIndex = 0;
 
 // Phone original UUID 2eadb97e-1dd2-11b2-8000-080027b246c5
 const String uuid = "2eadb97e-1dd2-11b2-8000-080027b246c5";
-// const String uuid = "b2270008-0080-b211-d21d-7eb9ad2e1502"; //old
 
 // Scan Beacon Time
 const int BeaconScanTime = 5; // s
-const int ScanTime = 500;     // ms
+const int ScanTime = 300;     // ms
 boolean mqttgo = false;
 
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
@@ -190,6 +189,7 @@ void Task_scanbeacon(void *pvParameters)
         msgStr.toCharArray(JSON, msgStr.length() + 1);
         client.loop();
         client.publish(topic, JSON);
+        Serial.println("MQTT上傳一次");
 
         // 清空MQTT訊息內容
         msgStr = "";
@@ -199,7 +199,7 @@ void Task_scanbeacon(void *pvParameters)
         //    m_beacondata[i].minor=NULL;
         //    m_beacondata[i].rssi=NULL;
         // }
-        delay(2000);
+        delay(1000);
     }
 }
 
