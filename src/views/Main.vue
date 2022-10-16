@@ -26,6 +26,13 @@
             顯示物品位置圖
           </el-button>
         </el-col>
+        <!-- MQTT測試LED -->
+        <el-col :span="8">
+          <el-button size="small" class="conn-btn" round
+            @click="doPublish">
+            MQTT測試LED
+          </el-button>
+        </el-col>
       </el-row>
       <!-- MQTT連接狀態 -->
       <el-row :gutter="20" style="margin-bottom:10px;">
@@ -96,9 +103,14 @@ export default {
           // esp2 x:240 y:640
           // esp3 x:940 y:30 
           //設定esp初始數值
-          { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          //晴天版
+          // { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          // { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          // { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          //雨天版
+          { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
         ],
         UserMessage: {
           //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
@@ -134,6 +146,11 @@ export default {
       subscription: {
         topic: 'indoor/#',
         qos: 0,
+      },
+      publish: {
+        topic: 'indoorLED/esp32',
+        qos: 0,
+        payload: 'R',
       },
       qosList: [
         { label: 0, value: 0 },
@@ -348,7 +365,7 @@ export default {
       return [output[0], output[1]]
     },
 
-    /////主要畫圖/////
+    /////畫圖功能/////
     DrawViewObject() {
       let canvas = document.getElementById("mycanvas");//New canvas
       let context = canvas.getContext("2d"); //創立畫布
@@ -531,6 +548,15 @@ export default {
           return
         }
         console.log('Subscribe to topics res', res)
+      })
+    },
+    doPublish() {
+      console.log("publish")
+      const { topic, qos, payload } = this.publish
+      this.client.publish(topic, payload, qos, error => {
+        if (error) {
+          console.log('Publish error', error)
+        }
       })
     },
     destroyConnection() {
