@@ -93,7 +93,7 @@ void receiveCallback(char *topic, byte *payload, unsigned int length)
         digitalWrite(LED_A, LOW);
         digitalWrite(LED_B, LOW);
         digitalWrite(LED_C, LOW);
-        Serial.println("LED_C ON");
+        Serial.println("All OFF");
         break;
     default:
         digitalWrite(LED_A, LOW);
