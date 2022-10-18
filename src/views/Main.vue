@@ -2,44 +2,55 @@
   <div class="home-container">
     <el-card style="margin-bottom:30px;">
       <el-row :gutter="20" style="margin-bottom:15px;">
-        <div class="emq-title">
-          功能區
-        </div>
-        <!-- 偵測進入區域功能 -->
-        <el-col :span="8">
-          <el-button :disabled="FunctionMenu.m_AreaMsg" size="small" class="conn-btn" round
-            @click="buttonclick('AreaMsg')">
-            偵測進入區域功能
-          </el-button>
-        </el-col>
-        <!-- 查看自己定位 -->
-        <el-col :span="8">
-          <el-button :disabled="FunctionMenu.m_MyPosition" size="small" class="conn-btn" round
-            @click="buttonclick('MyPosition')">
-            查看自己定位
-          </el-button>
-        </el-col>
-        <!-- 顯示物品位置圖 -->
-        <el-col :span="8">
-          <el-button :disabled="FunctionMenu.m_ViewObject" size="small" class="conn-btn" round
-            @click="buttonclick('ViewObject')">
-            顯示物品位置圖
-          </el-button>
-        </el-col>
-        <!-- MQTT測試LED -->
-        <el-col :span="8">
-          <el-button size="small" class="conn-btn" round
-            @click="doPublish">
-            MQTT測試LED
-          </el-button>
-        </el-col>
-      </el-row>
-      <!-- MQTT連接狀態 -->
-      <el-row :gutter="20" style="margin-bottom:10px;">
-        <el-col :span="4">
-          <div>MQTT連接狀態: {{client.connected?"已連接":"未連接"}}</div>
-        </el-col>
-
+        <!-- 顯示狀態,功能 -->
+        <el-row :gutter="20" style="margin-bottom:10px;">
+          <el-col :span="2">
+            <div class="emq-title">
+              功能區
+            </div>
+          </el-col>
+          <!-- MQTT連接狀態 -->
+          <el-col :span="6">
+            <div class="emq-title">
+              MQTT連接狀態: {{client.connected?"已連接":"未連接"}}
+            </div>
+          </el-col>
+          <el-col :span="3">
+            <el-button :disabled="FunctionMenu.m_SunnyRainy === 'Sunny'" size="small" class="sunny-btn"
+              @click="Sunny_RainyClick('Sunny')">
+              晴天設定
+            </el-button>
+          </el-col>
+          <el-col :span="3">
+            <el-button :disabled="FunctionMenu.m_SunnyRainy === 'Rainy'" size="small" class="rainy-btn"
+              @click="Sunny_RainyClick('Rainy')">
+              雨天設定
+            </el-button>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20" style="margin-bottom:10px;">
+          <!-- 偵測進入區域功能 -->
+          <el-col :span="8">
+            <el-button :disabled="FunctionMenu.m_AreaMsg || client.connected" size="small" class="conn-btn" round
+              @click="buttonclick('AreaMsg')">
+              偵測進入區域功能(控制區域燈光)
+            </el-button>
+          </el-col>
+          <!-- 查看自己定位 -->
+          <el-col :span="8">
+            <el-button :disabled="FunctionMenu.m_MyPosition || client.connected" size="small" class="conn-btn" round
+              @click="buttonclick('MyPosition')">
+              查看自己定位
+            </el-button>
+          </el-col>
+          <!-- 顯示物品位置圖 -->
+          <el-col :span="8">
+            <el-button :disabled="FunctionMenu.m_ViewObject || client.connected" size="small" class="conn-btn" round
+              @click="buttonclick('ViewObject')">
+              顯示物品位置圖
+            </el-button>
+          </el-col>
+        </el-row>
       </el-row>
       <!-- 目前啟用功能 -->
       <el-row :gutter="20" style="margin-bottom:10px;">
@@ -51,9 +62,14 @@
         </el-col>
       </el-row>
       <!-- 偵測到beacon數量 -->
-      <el-row :gutter="20">
+      <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="8">
           <div>偵測到beacon數量: {{Message.UserMessage.AmountOfBeacon}}</div>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20" style="margin-bottom:10px;">
+        <el-col :span="6">
+          <div>ESP Station 啟用設定 : {{FunctionMenu.m_SunnyRainy === 'Sunny' ? ' 晴天功能' : ' 雨天功能' }}</div>
         </el-col>
       </el-row>
     </el-card>
@@ -103,14 +119,15 @@ export default {
           // esp2 x:240 y:640
           // esp3 x:940 y:30 
           //設定esp初始數值
+
           //晴天版
-          // { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          // { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          // { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
           //雨天版
-          { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
-          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3, px: 65 },
-          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+          // { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+          // { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+          // { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
         ],
         UserMessage: {
           //偵測到的beacon資訊(已處理過) //ex. beacons[m_m][station]
@@ -131,6 +148,7 @@ export default {
         m_ViewObject: false,
         m_AreaMsg: false,
         m_MyPosition: false,
+        m_SunnyRainy: "Sunny",
       },
       linemsg: "",
       //MQTT Msg
@@ -224,12 +242,16 @@ export default {
         this.Message.FuntionMessage.AreaIndex = 1
       }
 
+      // A:房間
+      // B:客廳
+      // C:廁所
 
       //進行位置判斷並發送Line訊息
       if (x > room_x_start && x < room_x_end && y > room_y_start && y < room_y_end) {
         if (this.Message.FuntionMessage.AreaIndex != 1) {
           this.linemsg = "進入房間"
           this.SendLineMsg()
+          this.doPublish("A")
           this.Message.FuntionMessage.AreaIndex = 1
         }
       }
@@ -237,6 +259,7 @@ export default {
         if (this.Message.FuntionMessage.AreaIndex != 2) {
           this.linemsg = "進入客廳"
           this.SendLineMsg()
+          this.doPublish("B")
           this.Message.FuntionMessage.AreaIndex = 2
         }
       }
@@ -244,6 +267,7 @@ export default {
         if (this.Message.FuntionMessage.AreaIndex != 3) {
           this.linemsg = "進入廁所"
           this.SendLineMsg()
+          this.doPublish("C")
           this.Message.FuntionMessage.AreaIndex = 3
         }
       }
@@ -271,7 +295,7 @@ export default {
       }).catch((error) => console.log(error))
       console.log("已發送: " + msg)
     },
-
+    //功能按鈕
     buttonclick(str) {
       switch (str) {
         case "AreaMsg":
@@ -292,6 +316,26 @@ export default {
           this.FunctionMenu.m_ViewObject = true
           //判斷進入的功能重設
           this.Message.FuntionMessage.AreaIndex = 0
+          break
+      }
+    },
+    Sunny_RainyClick(str) {
+      switch (str) {
+        case "Sunny":
+          this.Message.StationsInfo =
+            [{ name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+            { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+            { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },]
+          this.FunctionMenu.m_SunnyRainy = "Sunny"
+          console.log("Esp Station Setting: Sunny Model")
+          break
+        case "Rainy":
+          this.Message.StationsInfo =
+            [{ name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+            { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+            { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },]
+          this.FunctionMenu.m_SunnyRainy = "Rainy"
+          console.log("Esp Station Setting: Rainy Model")
           break
       }
     },
@@ -322,18 +366,16 @@ export default {
             // Initialize
             beacons[m_m] = []
             MajorMinor.push(m_m)
-            //beacon數量增加
-            this.Message.UserMessage.AmountOfBeacon += 1
+
+            this.Message.UserMessage.AmountOfBeacon += 1 //beacon數量增加
           }
-
+          //存入or更新Beacon RSSI
           if (beacons[m_m][station] == null) {
-
-            // Insert new record
-            beacons[m_m][station] = parseInt(ReceiveRssi, 10)
+            beacons[m_m][station] = parseInt(ReceiveRssi, 10) //New
 
           }
           else {
-            beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10)
+            beacons[m_m][station] = parseInt((ReceiveRssi + beacons[m_m][station]) / 2, 10) //Update
           }
         }
       }
@@ -550,9 +592,11 @@ export default {
         console.log('Subscribe to topics res', res)
       })
     },
-    doPublish() {
-      console.log("publish")
+    doPublish(msg) {
+      console.log("Publish LED Area")
       const { topic, qos, payload } = this.publish
+      this.publish.payload = msg //修改傳出msg
+
       this.client.publish(topic, payload, qos, error => {
         if (error) {
           console.log('Publish error', error)
@@ -587,6 +631,18 @@ export default {
   .conn-btn {
     color: #fff;
     background-color: #00b173;
+    font-size: 14px;
+  }
+
+  .sunny-btn {
+    color: rgb(255, 255, 255);
+    background-color: rgb(255, 153, 0);
+    font-size: 14px;
+  }
+
+  .rainy-btn {
+    color: rgb(255, 255, 255);
+    background-color: rgb(0, 102, 255);
     font-size: 14px;
   }
 
