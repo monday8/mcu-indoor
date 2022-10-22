@@ -29,23 +29,23 @@
           </el-col>
         </el-row>
         <el-row :gutter="20" style="margin-bottom:10px;">
-          <!-- 偵測進入區域功能 -->
-          <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_AreaMsg || client.connected" size="small" class="conn-btn" round
-              @click="buttonclick('AreaMsg')">
-              偵測進入區域功能(控制區域燈光)
-            </el-button>
-          </el-col>
           <!-- 查看自己定位 -->
           <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_MyPosition || client.connected" size="small" class="conn-btn" round
+            <el-button :disabled="FunctionMenu.m_MyPosition || !client.connected" size="small" class="conn-btn" round
               @click="buttonclick('MyPosition')">
               查看自己定位
             </el-button>
           </el-col>
+          <!-- 偵測進入區域功能 -->
+          <el-col :span="8">
+            <el-button :disabled="FunctionMenu.m_AreaMsg || !client.connected" size="small" class="conn-btn" round
+              @click="buttonclick('AreaMsg')">
+              偵測進入區域功能(控制區域燈光)
+            </el-button>
+          </el-col>
           <!-- 顯示物品位置圖 -->
           <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_ViewObject || client.connected" size="small" class="conn-btn" round
+            <el-button :disabled="FunctionMenu.m_ViewObject || !client.connected" size="small" class="conn-btn" round
               @click="buttonclick('ViewObject')">
               顯示物品位置圖
             </el-button>
@@ -120,9 +120,11 @@ export default {
           // esp3 x:940 y:30 
           //設定esp初始數值
 
+
+          //  name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65
           //晴天版
           { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
           { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
           //雨天版
           // { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
@@ -149,6 +151,7 @@ export default {
         m_AreaMsg: false,
         m_MyPosition: false,
         m_SunnyRainy: "Sunny",
+        m_ViewObject_Run: false,
       },
       linemsg: "",
       //MQTT Msg
@@ -167,7 +170,7 @@ export default {
       },
       publish: {
         topic: 'indoorLED/esp32',
-        qos: 0,
+        qos: 1,
         payload: 'R',
       },
       qosList: [
@@ -218,7 +221,10 @@ export default {
             this.MyPosition()
           }
         } else if (this.FunctionMenu.m_ViewObject) {   //查看定位物品圖功能
-          this.ViewObject()
+          if (!this.FunctionMenu.m_ViewObject_Run) {
+            this.ViewObject()
+            this.FunctionMenu.m_ViewObject_Run = true
+          }
         }
       }
 
@@ -232,21 +238,17 @@ export default {
       //取得鎖定beacon的x,y
       let [x, y] = [this.Message.UserMessage.PositionMessage[SelectDevice].x, this.Message.UserMessage.PositionMessage[SelectDevice].y]
       //定位區域的位置
-      let room_x_start = 0, room_y_start = 0, room_x_end = 500, room_y_end = 500
-      let living_x_start = 500, living_y_start = 500, living_x_end = 600, living_y_end = 600
-      let bath_x_start = 600, bath_y_start = 600, bath_x_end = 700, bath_y_end = 700
-
-      if (this.Message.FuntionMessage.AreaIndex != 1) {
-        this.linemsg = "進入房間"
-        this.SendLineMsg()
-        this.Message.FuntionMessage.AreaIndex = 1
-      }
+      let room_x_start = 0, room_y_start = 0, room_x_end = 270, room_y_end = 460
+      let living_x_start = 590, living_y_start = 0, living_x_end = 1000, living_y_end = 440
+      let bath_x_start = 170, bath_y_start = 290, bath_x_end = 580, bath_y_end = 450
 
       // A:房間
       // B:客廳
       // C:廁所
 
       //進行位置判斷並發送Line訊息
+
+      // A:房間
       if (x > room_x_start && x < room_x_end && y > room_y_start && y < room_y_end) {
         if (this.Message.FuntionMessage.AreaIndex != 1) {
           this.linemsg = "進入房間"
@@ -255,6 +257,7 @@ export default {
           this.Message.FuntionMessage.AreaIndex = 1
         }
       }
+      // B:客廳
       if (x > living_x_start && x < living_x_end && y > living_y_start && y < living_y_end) {
         if (this.Message.FuntionMessage.AreaIndex != 2) {
           this.linemsg = "進入客廳"
@@ -263,6 +266,7 @@ export default {
           this.Message.FuntionMessage.AreaIndex = 2
         }
       }
+      // C:廁所
       if (x > bath_x_start && x < bath_x_end && y > bath_y_start && y < bath_y_end) {
         if (this.Message.FuntionMessage.AreaIndex != 3) {
           this.linemsg = "進入廁所"
@@ -302,20 +306,24 @@ export default {
           this.FunctionMenu.m_AreaMsg = true
           this.FunctionMenu.m_MyPosition = false
           this.FunctionMenu.m_ViewObject = false
+
+          this.FunctionMenu.m_ViewObject_Run = false  //查看物品定位圖重設
           break
         case "MyPosition":
           this.FunctionMenu.m_AreaMsg = false
           this.FunctionMenu.m_MyPosition = true
           this.FunctionMenu.m_ViewObject = false
-          //判斷進入的功能重設
-          this.Message.FuntionMessage.AreaIndex = 0
+
+          this.FunctionMenu.m_ViewObject_Run = false  //查看物品定位圖重設
+
+          this.Message.FuntionMessage.AreaIndex = 0 //判斷進入的功能重設
           break
         case "ViewObject":
           this.FunctionMenu.m_AreaMsg = false
           this.FunctionMenu.m_MyPosition = false
           this.FunctionMenu.m_ViewObject = true
-          //判斷進入的功能重設
-          this.Message.FuntionMessage.AreaIndex = 0
+
+          this.Message.FuntionMessage.AreaIndex = 0 //判斷進入的功能重設
           break
       }
     },
@@ -324,15 +332,15 @@ export default {
         case "Sunny":
           this.Message.StationsInfo =
             [{ name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-            { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-            { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },]
+          { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },]
           this.FunctionMenu.m_SunnyRainy = "Sunny"
           console.log("Esp Station Setting: Sunny Model")
           break
         case "Rainy":
           this.Message.StationsInfo =
             [{ name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },
-            { name: "esp2", x: 500, y: 400, DistanceMeter: 55, EnvironFator: 3, px: 65 },
+            { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3, px: 65 },
             { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3, px: 65 },]
           this.FunctionMenu.m_SunnyRainy = "Rainy"
           console.log("Esp Station Setting: Rainy Model")
