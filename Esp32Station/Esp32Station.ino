@@ -13,9 +13,9 @@
 #include "user.h"
 //#include"user_example.h"
 
-#include "esp1.h"
+//#include "esp1.h"
 //#include "esp2.h"
-//#include "esp3.h"
+#include "esp3.h"
 
 // uint16 轉int
 #define ENDIAN_CHANGE_U16(x) ((((x)&0xFF00) >> 8) + (((x)&0xFF) << 8))
@@ -53,7 +53,7 @@ const String uuid = "2eadb97e-1dd2-11b2-8000-080027b246c5";
 
 // Scan Beacon Time
 const int BeaconScanTime = 5; // s
-const int ScanTime = 300;     // ms
+const int ScanTime = 200;     // ms
 boolean mqttgo = false;
 
 class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
@@ -74,7 +74,7 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks
             int m_minor = ENDIAN_CHANGE_U16(id.getMinor());
 
             int m_rssi = advertisedDevice.haveRSSI() ? advertisedDevice.getRSSI() : 0;
-            Serial.println(m_rssi);
+            // Serial.println(m_rssi);
             if (beacondataIndex > DataNum) // DataNum define
             {
                 beacondataIndex = 0;
