@@ -308,7 +308,7 @@ export default {
       let msg = this.linemsg
       axios({
         method: "post",
-        url: "/api/linemsg/with/key/c5e3V-0szcmJDeImLlXzai",
+        url: "/api/linemsg/with/key/",
         transformRequest: [function (data) {
           return qs.stringify(data)
         }],
