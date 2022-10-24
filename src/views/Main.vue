@@ -15,41 +15,47 @@
               MQTT連接狀態: {{client.connected?"已連接":"未連接"}}
             </div>
           </el-col>
-          <el-col :span="3">
+          <el-col :span="3" v-if="client.connected">
             <el-button :disabled="FunctionMenu.m_SunnyRainy === 'Sunny'" size="small" class="sunny-btn"
               @click="Sunny_RainyClick('Sunny')">
               晴天設定
             </el-button>
           </el-col>
-          <el-col :span="3">
+          <el-col :span="3" v-if="client.connected">
             <el-button :disabled="FunctionMenu.m_SunnyRainy === 'Rainy'" size="small" class="rainy-btn"
               @click="Sunny_RainyClick('Rainy')">
               雨天設定
             </el-button>
           </el-col>
         </el-row>
-        <el-row :gutter="20" style="margin-bottom:10px;">
+        <el-row :gutter="20" style="margin-bottom:10px;" v-if="client.connected">
           <!-- 查看自己定位 -->
           <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_MyPosition || !client.connected" size="small" class="conn-btn" round
+            <el-button :disabled="FunctionMenu.m_MyPosition" size="small" class="conn-btn" round
               @click="buttonclick('MyPosition')">
               查看自己定位
             </el-button>
           </el-col>
           <!-- 偵測進入區域功能 -->
           <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_AreaMsg || !client.connected" size="small" class="conn-btn" round
+            <el-button :disabled="FunctionMenu.m_AreaMsg" size="small" class="conn-btn" round
               @click="buttonclick('AreaMsg')">
               偵測進入區域功能(控制區域燈光)
             </el-button>
           </el-col>
           <!-- 顯示物品位置圖 -->
           <el-col :span="8">
-            <el-button :disabled="FunctionMenu.m_ViewObject || !client.connected" size="small" class="conn-btn" round
+            <el-button :disabled="FunctionMenu.m_ViewObject" size="small" class="conn-btn" round
               @click="buttonclick('ViewObject')">
               顯示物品位置圖
             </el-button>
           </el-col>
+          <!-- 測試按鈕 -->
+          <!-- <el-col :span="8">
+            <el-button size="small" class="conn-btn" round @click="DrawPhoto()">
+              測試按鈕
+            </el-button>
+          </el-col> -->
         </el-row>
       </el-row>
       <!-- 目前啟用功能 -->
@@ -120,8 +126,6 @@ export default {
           // esp3 x:940 y:30 
           //設定esp初始數值
 
-
-          //  name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65
           //晴天版
           { name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
           { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
@@ -170,7 +174,7 @@ export default {
       },
       publish: {
         topic: 'indoorLED/esp32',
-        qos: 1,
+        qos: 2,
         payload: 'R',
       },
       qosList: [
@@ -237,14 +241,16 @@ export default {
       let SelectDevice = this.Message.FuntionMessage.ChioceDevice
       //取得鎖定beacon的x,y
       let [x, y] = [this.Message.UserMessage.PositionMessage[SelectDevice].x, this.Message.UserMessage.PositionMessage[SelectDevice].y]
+
       //定位區域的位置
-      let room_x_start = 0, room_y_start = 0, room_x_end = 270, room_y_end = 460
-      let living_x_start = 590, living_y_start = 0, living_x_end = 1000, living_y_end = 440
-      let bath_x_start = 170, bath_y_start = 290, bath_x_end = 580, bath_y_end = 450
+      //Start [x,y] End [x,y]
+      let room_x_start = 0, room_y_start = 0, room_x_end = 460, room_y_end = 270 //A
+      let living_x_start = 590, living_y_start = 0, living_x_end = 1000, living_y_end = 440 //B
+      let balcony_x_start = 170, balcony_y_start = 290, balcony_x_end = 580, balcony_y_end = 450  //C
 
       // A:房間
       // B:客廳
-      // C:廁所
+      // C:陽台
 
       //進行位置判斷並發送Line訊息
 
@@ -266,8 +272,8 @@ export default {
           this.Message.FuntionMessage.AreaIndex = 2
         }
       }
-      // C:廁所
-      if (x > bath_x_start && x < bath_x_end && y > bath_y_start && y < bath_y_end) {
+      // C:陽台
+      if (x > balcony_x_start && x < balcony_x_end && y > balcony_y_start && y < balcony_y_end) {
         if (this.Message.FuntionMessage.AreaIndex != 3) {
           this.linemsg = "進入廁所"
           this.SendLineMsg()
@@ -332,8 +338,8 @@ export default {
         case "Sunny":
           this.Message.StationsInfo =
             [{ name: "esp1", x: 0, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
-          { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },]
+            { name: "esp2", x: 400, y: 420, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },
+            { name: "esp3", x: 940, y: 20, DistanceMeter: 55, EnvironFator: 3.5, px: 65 },]
           this.FunctionMenu.m_SunnyRainy = "Sunny"
           console.log("Esp Station Setting: Sunny Model")
           break
@@ -347,7 +353,6 @@ export default {
           break
       }
     },
-
 
     JsonProcess(message) {
 
@@ -603,6 +608,7 @@ export default {
     doPublish(msg) {
       console.log("Publish LED Area")
       const { topic, qos, payload } = this.publish
+      //qos使用2層級 
       this.publish.payload = msg //修改傳出msg
 
       this.client.publish(topic, payload, qos, error => {
