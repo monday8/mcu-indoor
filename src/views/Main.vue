@@ -12,7 +12,7 @@
           <!-- MQTT連接狀態 -->
           <el-col :span="6">
             <div class="emq-title">
-              MQTT連接狀態: {{client.connected?"已連接":"未連接"}}
+              MQTT連接狀態: {{ client.connected ? "已連接" : "未連接" }}
             </div>
           </el-col>
           <el-col :span="3" v-if="client.connected">
@@ -62,25 +62,26 @@
       <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="8">
           <div>目前啟用功能:
-            {{FunctionMenu.m_AreaMsg ? '偵測進入區域功能' : FunctionMenu.m_ViewObject ? '顯示物品位置圖' : FunctionMenu.m_MyPosition ?
-            '查看自己定位' : '目前無啟用功能'}}
+            {{ FunctionMenu.m_AreaMsg ? '偵測進入區域功能' : FunctionMenu.m_ViewObject ? '顯示物品位置圖' : FunctionMenu.m_MyPosition ?
+                '查看自己定位' : '目前無啟用功能'
+            }}
           </div>
         </el-col>
       </el-row>
       <!-- 偵測到beacon數量 -->
       <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="8">
-          <div>偵測到beacon數量: {{Message.UserMessage.AmountOfBeacon}}</div>
+          <div>偵測到beacon數量: {{ Message.UserMessage.AmountOfBeacon }}</div>
         </el-col>
       </el-row>
       <el-row :gutter="20" style="margin-bottom:10px;">
         <el-col :span="6">
-          <div>ESP Station 啟用設定 : {{FunctionMenu.m_SunnyRainy === 'Sunny' ? ' 晴天功能' : ' 雨天功能' }}</div>
+          <div>ESP Station 啟用設定 : {{ FunctionMenu.m_SunnyRainy === 'Sunny' ? ' 晴天功能' : ' 雨天功能' }}</div>
         </el-col>
       </el-row>
     </el-card>
     <!-- 選擇Beacon -->
-    <div v-if="FunctionMenu.m_MyPosition ||FunctionMenu.m_AreaMsg">
+    <div v-if="FunctionMenu.m_MyPosition || FunctionMenu.m_AreaMsg">
       <el-card style="margin-bottom:30px;">
         <div class="emq-title">
           選擇Beacon
@@ -93,7 +94,7 @@
         </el-select>
       </el-card>
     </div>
-    <!-- Canvas -->
+    <!-- Canvas (繪圖)-->
     <div
       v-if="(FunctionMenu.m_ViewObject) || (Message.FuntionMessage.ChioceDevice !== '' && FunctionMenu.m_MyPosition === true)">
       <el-card style="margin-bottom:30px;">
@@ -259,7 +260,6 @@ export default {
         if (this.Message.FuntionMessage.AreaIndex != 1) {
           this.linemsg = "進入房間"
           this.SendLineMsg()
-          this.doPublish("A")
           this.Message.FuntionMessage.AreaIndex = 1
         }
       }
@@ -268,7 +268,6 @@ export default {
         if (this.Message.FuntionMessage.AreaIndex != 2) {
           this.linemsg = "進入客廳"
           this.SendLineMsg()
-          this.doPublish("B")
           this.Message.FuntionMessage.AreaIndex = 2
         }
       }
@@ -277,10 +276,24 @@ export default {
         if (this.Message.FuntionMessage.AreaIndex != 3) {
           this.linemsg = "進入廁所"
           this.SendLineMsg()
-          this.doPublish("C")
           this.Message.FuntionMessage.AreaIndex = 3
         }
       }
+      switch (this.Message.FuntionMessage.AreaIndex) {
+        case 1:
+          this.doPublish("A")
+          break;
+        case 2:
+          this.doPublish("B")
+          break;
+        case 3:
+          this.doPublish("C")
+          break;
+        default:
+          this.doPublish("R")
+          break;
+      }
+
 
     },
     MyPosition() {
@@ -295,7 +308,7 @@ export default {
       let msg = this.linemsg
       axios({
         method: "post",
-        url: "/api/linemsg/with/key/",
+        url: "/api/linemsg/with/key/c5e3V-0szcmJDeImLlXzai",
         transformRequest: [function (data) {
           return qs.stringify(data)
         }],
